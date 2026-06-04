@@ -1,0 +1,25 @@
+{
+  "python.locator": "native",
+  "python.venvFolders": [
+    ".venv",
+    "venv"
+  ],
+  "python.terminal.activateEnvironment": false,
+  "terminal.integrated.defaultProfile.linux": "fish",
+  "terminal.integrated.profiles.linux": {
+    "fish": {
+      "path": "/usr/bin/fish",
+      "args": [
+        "-l"
+      ]
+    }
+  },
+  "terminal.integrated.env.linux": {
+    "PATH": "/home/anon/Personal/Code/Weaver/.venv/bin:${env:PATH}",
+    "VIRTUAL_ENV": "/home/anon/Personal/Code/Weaver/.venv"
+  },
+  "python.analysis.extraPaths": [
+    "src",
+    ".venv"
+  ]
+}
