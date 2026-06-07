@@ -13,4 +13,4 @@ def advance_ratchet(k_ratchet):
 
 #Derives our per task keys
 def derive_cmd_key(k_ratchet, salt):
-    K_cmd = hmac.new(k_ratchet, salt, b"CMDKEY")
+    return hmac.new(k_ratchet, salt + b"CMDKEY", hashlib.sha256)
