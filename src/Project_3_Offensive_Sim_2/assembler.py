@@ -1,3 +1,6 @@
+import sys
+
+
 OPCODE_TABLE = {
     # Stack
     "PUSH32": 0x01,
@@ -32,24 +35,51 @@ OPCODE_TABLE = {
 }
 
 
-def parse_bytecode_line(opcode):
+def parse_bytecode_line(instruction):
+    parsed_bytecode_line = ""
 
-    if (opcode == "PUSH32"):
+    #
+
+    instruction_list = instruction.split(" ", 1)
+    instruction_mmemoric = instruction_list[1]
+
+
+
+    #Pre pass error checking
+    if instruction_mmemoric not in OPCODE_TABLE.values():
+        raise(ValueError)("Opcode in parse_btyecode_line is not present in instruction_mmemoric table")
+
+
+    #first pass (opcodes)
+    if (instruction_mmemoric == "PUSH32"):
         print("ABC")
 
-    if (opcode == "SYSCALL"):
+    elif (instruction_mmemoric == "SYSCALL"):
         print("ABC")
 
-    if (opcode == "JMP"):
+    elif (instruction_mmemoric == "JMP"):
         print("DEF")
-    elif(opcode == "JZ"):
+    elif (instruction_mmemoric == "JZ"):
         print("DEF")
-    elif (opcode == "JNZ"):
+    elif (instruction_mmemoric == "JNZ"):
         print("DEF")
-    elif (opcode == "CALL"):
+    elif (instruction_mmemoric == "CALL"):
         print("DEF")
+
+    else:
+        {parsed_bytecode_line == OPCODE_TABLE.get(instruction_mmemoric)}
+
+
+    #Second pass (Labels)
+    return parsed_bytecode_line
     
 
 def assemble_payload(bytecode):
+    payload = ""
+
+    if sys.getsizeof(payload > 256):
+        return 0
+    
+
     print("")
 
