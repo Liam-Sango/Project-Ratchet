@@ -1,6 +1,5 @@
 import sys
 import struct
-import string
 
 OPCODE_TABLE = {
     # Stack
@@ -95,9 +94,8 @@ def get_instruction_size(instruction):
 
     return instruction_size
 
-
 def resolve_labels(assembly_lines):
-    
+
     label_offsets = {}
     byte_offset = 0
 
@@ -123,10 +121,6 @@ def resolve_labels(assembly_lines):
         byte_offset += instruction_size
 
     return label_offsets
-
-
-
-
 
 def parsed_bytecode_line(instruction):
     parsed_bytecode_line = b""
@@ -195,11 +189,51 @@ def parsed_bytecode_line(instruction):
     
 
 def assemble_payload(bytecode):
-    payload = ""
+    payload = b""
+    TWO_BYTE_OPS = {"JMP", "JZ", "JNZ", "CALL"}
 
-    if sys.getsizeof(payload > 256):
-        return 0
-    
+    if isinstance(bytecode, str):
+        lines = bytecode.splitlines()
+    else:
+        lines = list(bytecode)
 
-    print("")
+    label_offsets = resolve_labels(lines)
+    current_offset = 0
+
+    for line in lines:
+        cleaned_line = line.strip()
+
+        if not cleaned_line:
+            continue
+
+        if cleaned_line.endswith(':'):
+            continue
+
+        line_list = cleaned_line.split(" ", 1)
+        instruction_mnemonic = line_list[0]
+
+        if instruction_mnemonic in TWO_BYTE_OPS:
+            if len(line_list) != 2:
+                raise ValueError(f"Instruction '{instruction_mnemonic}' requires an operand.")
+
+            operand = line_list[1].strip()
+
+            try:
+                int(operand)
+            except ValueError:
+                if operand not in label_offsets:
+                    raise ValueError(f"Unknown label '{operand}'.")
+
+                relative_offset = label_offsets[operand] - current_offset
+                cleaned_line = f"{instruction_mnemonic} {relative_offset}"
+
+        instruction_bytes = parsed_bytecode_line(cleaned_line)
+        payload += instruction_bytes
+        current_offset += len(instruction_bytes)
+
+        if len(payload) > 256:
+            raise ValueError("Bytecode exceeds 256-byte limit.")
+
+    return payload
+
 
