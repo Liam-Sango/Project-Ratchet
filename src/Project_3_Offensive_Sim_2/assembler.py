@@ -40,15 +40,11 @@ def get_instruction_size(instruction):
     SINGLE_BYTE_OPS = {"DUP", "SWAP", "DROP", "ADD", "SUB", "AND", "OR", "XOR", "NOT", "LOAD32", "STORE32", "RET", "HALT"}
     TWO_BYTE_OPS = {"JMP", "JZ", "JNZ", "CALL"}
 
-
-    #Splits our bytecode instruction
     instruction_list = instruction.split(" ", 1)
 
-    #Checks if our bytecode instruction is in our opcode table
     if instruction_list[0] not in OPCODE_TABLE:
         raise ValueError(f"Unknown opcode '{instruction_list[0]}' in get_instruction_size")
     
-    #Translates our opcode mnemonic using our opcode table
     instruction_mnemonic = instruction_list[0] 
     opcode_byte = OPCODE_TABLE[instruction_mnemonic]
 
@@ -125,7 +121,6 @@ def resolve_labels(assembly_lines):
 def parsed_bytecode_line(instruction):
     parsed_bytecode_line = b""
 
-    #Opcode checking
     instruction_list = instruction.split(" ", 1)
 
     if instruction_list[0] not in OPCODE_TABLE:
@@ -172,6 +167,7 @@ def parsed_bytecode_line(instruction):
 
         parsed_bytecode_line = bytes([opcode_byte]) + packed_bytes
 
+    #Syscall
     elif (instruction_mnemonic == "SYSCALL"):
 
         if(instruction_operand is None):
@@ -182,9 +178,6 @@ def parsed_bytecode_line(instruction):
 
         parsed_bytecode_line = bytes([opcode_byte]) + packed_bytes
       
-
-
-    #Second pass (Labels)
     return parsed_bytecode_line
     
 
