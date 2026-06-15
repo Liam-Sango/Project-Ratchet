@@ -34,6 +34,75 @@ OPCODE_TABLE = {
     "HALT": 0xFF,
 }
 
+def get_instruction_size(instruction):
+    instruction_size = 0
+
+    SINGLE_BYTE_OPS = {"DUP", "SWAP", "DROP", "ADD", "SUB", "AND", "OR", "XOR", "NOT", "LOAD32", "STORE32", "RET", "HALT"}
+    TWO_BYTE_OPS = {"JMP", "JZ", "JNZ", "CALL"}
+
+
+    #Splits our bytecode instruction
+    instruction_list = instruction.split(" ", 1)
+
+    #Checks if our bytecode instruction is in our opcode table
+    if instruction_list[0] not in OPCODE_TABLE:
+        raise ValueError(f"Unknown opcode '{instruction_list[0]}' in get_instruction_size")
+    
+    #Translates our opcode mnemonic using our opcode table
+    instruction_mnemonic = instruction_list[0] 
+    opcode_byte = OPCODE_TABLE[instruction_mnemonic]
+
+    if (len(instruction_list) == 2):
+         instruction_operand = instruction_list[1] 
+    else:
+        instruction_operand = None
+
+
+    #Calculates and returns the size of single byte operations
+    if (instruction_operand is not None and instruction_mnemonic in SINGLE_BYTE_OPS): 
+          raise ValueError(f"Instruction '{instruction_mnemonic}' requires an operand but none was provided.")
+    
+    if (instruction_mnemonic in SINGLE_BYTE_OPS):
+        instruction_size = 1
+        return instruction_size
+    
+
+    #Calculates and returns the size of two byte operations
+    elif (instruction_mnemonic in TWO_BYTE_OPS):
+
+        if(instruction_operand is None):
+              raise ValueError(f"Instruction '{instruction_mnemonic}' requires an operand but none was provided.")
+        
+        instruction_size = 3
+    
+    #Calculates and returns the size of PUSH32 instructions
+    elif (instruction_mnemonic == "PUSH32"):
+
+        if(instruction_operand is None):
+              raise ValueError(f"Instruction '{instruction_mnemonic}' requires an operand but none was provided.")
+
+        instruction_size = 5
+
+    #Calculates and returns the size of SYSCALL instructions
+    elif (instruction_mnemonic == "SYSCALL"):
+
+        if(instruction_operand is None):
+              raise ValueError(f"Instruction '{instruction_mnemonic}' requires an operand but none was provided.")
+        
+        instruction_size = 2
+
+
+    return instruction_size
+
+
+def resolve_labels(raw_instructions):
+
+    list_size = sys.getsizeof(raw_instructions)
+    byte_offset = 0
+    
+    for x in range(list_size):
+        instruction = parsed_bytecode_line(x)
+
 
 def parsed_bytecode_line(instruction):
     parsed_bytecode_line = b""
