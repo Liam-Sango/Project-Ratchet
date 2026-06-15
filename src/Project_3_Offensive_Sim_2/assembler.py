@@ -1,5 +1,6 @@
 import sys
 import struct
+import string
 
 OPCODE_TABLE = {
     # Stack
@@ -95,13 +96,36 @@ def get_instruction_size(instruction):
     return instruction_size
 
 
-def resolve_labels(raw_instructions):
-
-    list_size = sys.getsizeof(raw_instructions)
-    byte_offset = 0
+def resolve_labels(assembly_lines):
     
-    for x in range(list_size):
-        instruction = parsed_bytecode_line(x)
+    label_offsets = {}
+    byte_offset = 0
+
+    for line in assembly_lines:
+        cleaned_line = line.strip()
+
+        if not cleaned_line:
+            continue
+        
+        if cleaned_line.endswith(':'):
+            label_name = cleaned_line[:-1].strip()
+
+            if not label_name:
+                raise ValueError("Invalid label format: empty name.")
+
+            if label_name in label_offsets:
+                raise ValueError(f"Duplicate label definition: '{label_name}'")
+
+            label_offsets[label_name] = byte_offset
+            continue
+        
+        instruction_size = get_instruction_size(cleaned_line)
+        byte_offset += instruction_size
+
+    return label_offsets
+
+
+
 
 
 def parsed_bytecode_line(instruction):
