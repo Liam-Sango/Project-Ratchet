@@ -28,9 +28,85 @@ class VirtualMachine:
             opcode = self.bytecode[self.instruction_pointer]
             self.instruction_pointer += 1
 
+            # Stack OPCODES
+
+            #PUSH32
+            if opcode == 0x01:
+                print("TEMP")
+            #DUP
+            elif opcode == 0x02:
+                print("TEMP")
+            #SWAP
+            elif opcode == 0x03:
+                print("TEMP")
+            #DROP
+            elif opcode == 0x04:
+                print("TEMP")
+
+
+            # Arithmetic OPCODES
+            
+            #ADD
+            elif opcode == 0x10:
+                print("TEMP")
+            #SUB
+            elif opcode == 0x11:
+                print("TEMP")
+            #AND
+            elif opcode == 0x12:
+                print("TEMP")
+            #OR
+            elif opcode == 0x13:
+                print("TEMP")
+            #XOR
+            elif opcode == 0x14:
+                print("TEMP")
+            #NOT
+            elif opcode == 0x15:
+                print("TEMP")
+            
+
+             # Memory OPCODES
+            
+            #LOAD32
+            elif opcode == 0x20:
+                print("TEMP")
+            #STORE32
+            elif opcode == 0x21:
+                print("TEMP")
+
+            #Control OPCODES
+            
+            #JMP
+            elif opcode == 0x30:
+                print("TEMP")
+            #JZ
+            elif opcode == 0x31:
+                print("TEMP")
+            #JNZ
+            elif opcode == 0x32:
+                print("TEMP")
+            #CALL
+            elif opcode == 0x33:
+                print("TEMP")
+            #RET
+            elif opcode == 0x33:
+                print("TEMP")
+
+
+            #System OPCODES
+            
+            #JMP
+            elif opcode == 0x40:
+                print("TEMP")
+
+            #Halt OPCODE
+
             #HALT
-            if opcode == 0xFF:
-                self.is_halted = True
+            elif opcode == 0xFF:
+                print("TEMP")
+                
+
             else: 
                 raise ValueError (f"Unknown opcode: {opcode}")
 
