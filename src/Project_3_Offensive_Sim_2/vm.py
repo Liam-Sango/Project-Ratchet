@@ -49,10 +49,18 @@ class VirtualMachine:
 
             #DUP
             elif opcode == 0x02:
-                print("TEMP")
+                #Reads and duplicates the top value of the data stack
+                if len(self.data_stack) < 1:
+                    raise ValueError("Data stack values missing for DUP")
+                
+                dup_val = self.data_stack[-1]
+
+                self.data_stack.append(dup_val)
+                
             #SWAP
             elif opcode == 0x03:
                 print("TEMP")
+            
             #DROP
             elif opcode == 0x04:
                 print("TEMP")
