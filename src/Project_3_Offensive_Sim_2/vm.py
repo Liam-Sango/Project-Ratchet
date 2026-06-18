@@ -37,7 +37,7 @@ class VirtualMachine:
     
                 for x in range(4):
                     if self.instruction_pointer >= len(self.bytecode):
-                        raise ValueError ("operand bytes missing for PUSH32")
+                        raise ValueError (" 'PUSH32' Requires at least four additional operand bytes in the bytecode")
                     
                     byte_arr_32 += self.bytecode[self.instruction_pointer]
                     self.instruction_pointer += 1
@@ -50,7 +50,7 @@ class VirtualMachine:
             elif opcode == 0x02:
                 #Reads and duplicates the top value of the data stack
                 if len(self.data_stack) < 1:
-                    raise ValueError("Data stack values missing for DUP")
+                    raise ValueError(" 'DUP' requires at least one value on the stack.")
                 
                 dup_val = self.data_stack[-1]
 
@@ -60,13 +60,18 @@ class VirtualMachine:
             elif opcode == 0x03:
                 # Reads and swaps top  two elements of the data stack
                 if len(self.data_stack) < 2:
-                    raise ValueError("Data stack values missing for SWAP")
+                    raise ValueError("'SWAP' requires at least two values on the stack.")
                 
                 self.data_stack[-1], self.data_stack[-2] = self.data_stack[-2], self.data_stack[-1]
 
             #DROP
             elif opcode == 0x04:
-                print("TEMP")
+                #Discards the top element of the data stack
+                if len(self.data_stack) < 1:
+                    raise ValueError("'DROP' requires at least one value on the stack.")
+                
+                self.data_stack.pop()
+            
 
             # Arithmetic OPCODES
             
