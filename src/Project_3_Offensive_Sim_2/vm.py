@@ -109,16 +109,59 @@ class VirtualMachine:
 
             #AND
             elif opcode == 0x12:
-                print("TEMP")
+                #performs a bitwise AND operation of the top two elements of the data stack
+                if len(self.data_stack) < 2:
+                    raise ValueError("'AND' requires at least two values on the stack.")
+                
+                right = self.data_stack[-1]
+                left = self.data_stack[-2]
+
+                Val_Sum = left & right
+
+                self.data_stack[-2:] = [Val_Sum]
+
             #OR
             elif opcode == 0x13:
-                print("TEMP")
+                #performs a bitwise OR operation of the top two elements of the data stack
+                if len(self.data_stack) < 2:
+                    raise ValueError("'OR' requires at least two values on the stack.")
+                
+                right = self.data_stack[-1]
+                left = self.data_stack[-2]
+
+                Val_Sum = left | right
+
+                self.data_stack[-2:] = [Val_Sum]
+
             #XOR
             elif opcode == 0x14:
-                print("TEMP")
+                #performs a bitwise XOR operation of the top two elements of the data stack
+                if len(self.data_stack) < 2:
+                    raise ValueError("'XOR' requires at least two values on the stack.")
+                
+                right = self.data_stack[-1]
+                left = self.data_stack[-2]
+
+                Val_Sum = left ^ right
+
+                self.data_stack[-2:] = [Val_Sum]
+
+
             #NOT
             elif opcode == 0x15:
-                print("TEMP")
+                #performs an bitwise NOT operation of the top two elements of the data stack
+                if len(self.data_stack) < 1:
+                    raise ValueError("'NOT' requires at least one values on the stack.")
+                
+                right = self.data_stack[-1]
+                left = self.data_stack[-2]
+
+                Val_Sum = (~right) & 0xFFFFFFFF
+                
+                if Val_Sum & 0x80000000:
+                     Val_Sum -= 0x100000000
+
+                self.data_stack[-1:] = [Val_Sum]
             
 
              # Memory OPCODES
