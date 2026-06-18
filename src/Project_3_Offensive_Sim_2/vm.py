@@ -32,7 +32,21 @@ class VirtualMachine:
 
             #PUSH32
             if opcode == 0x01:
-                print("TEMP")
+                #Reads and pushes 32 bit int to the data stack.
+                byte_arr_32 = bytearray()
+    
+                for x in range(4):
+
+                    if self.instruction_pointer >= len(self.bytecode):
+                        raise ValueError ("operand bytes missing for PUSH32")
+                    
+                    byte_arr_32 += self.bytecode[self.instruction_pointer]
+                    self.instruction_pointer += 1
+
+                int_32 = int.from_bytes(byte_arr_32, byteorder="big")
+
+                self.data_stack.append(int_32)
+
             #DUP
             elif opcode == 0x02:
                 print("TEMP")
@@ -105,7 +119,7 @@ class VirtualMachine:
             #HALT
             elif opcode == 0xFF:
                 print("TEMP")
-                
+
 
             else: 
                 raise ValueError (f"Unknown opcode: {opcode}")
