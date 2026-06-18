@@ -77,10 +77,36 @@ class VirtualMachine:
             
             #ADD
             elif opcode == 0x10:
-                print("TEMP")
+                #performs an adddition operation of the top two elements of the data stack
+                if len(self.data_stack) < 2:
+                    raise ValueError("'ADD' requires at least two values on the stack.")
+                
+                right = self.data_stack[-1]
+                left = self.data_stack[-2]
+
+                Val_Sum = (right + left) & 0xFFFFFFFF
+                
+                if Val_Sum & 0x80000000:
+                     Val_Sum -= 0x100000000
+
+                self.data_stack[-2:] = [Val_Sum]
+
             #SUB
             elif opcode == 0x11:
-                print("TEMP")
+                 #performs an subtraction operation of the top two elements of the data stack
+                if len(self.data_stack) < 2:
+                    raise ValueError("'SUB' requires at least two values on the stack.")
+                
+                right = self.data_stack[-1]
+                left = self.data_stack[-2]
+
+                Val_Sum = (left - right) & 0xFFFFFFFF
+                
+                if Val_Sum & 0x80000000:
+                     Val_Sum -= 0x100000000
+
+                self.data_stack[-2:] = [Val_Sum]
+
             #AND
             elif opcode == 0x12:
                 print("TEMP")
