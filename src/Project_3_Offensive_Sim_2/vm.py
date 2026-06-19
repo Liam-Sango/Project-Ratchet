@@ -216,7 +216,17 @@ class VirtualMachine:
 
             #JZ
             elif opcode == 0x31:
-                print("TEMP")
+                 #Pops one value on the data stack, Jumps if the value is zero.
+                 if len(self.data_stack) < 1:
+                    raise ValueError("'JZ' requires at least one value on the stack.")
+                 
+                 Value = self.data_stack.pop()
+                 offset = struct.unpack(">h", self.bytecode[self.instruction_pointer:self.instruction_pointer+2])[0]
+                 
+                 self.instruction_pointer += 2
+                 if Value == 0:
+                      self.instruction_pointer = instruction_start + offset
+
             #JNZ
             elif opcode == 0x32:
                 print("TEMP")
