@@ -53,7 +53,7 @@ class VirtualMachine:
             elif opcode == 0x02:
                 #Reads and duplicates the top value of the data stack
                 if len(self.data_stack) < 1:
-                    raise ValueError(" 'DUP' requires at least one value on the stack.")
+                    raise ValueError(" 'DUP' requires at least one value on the data stack.")
                 
                 dup_val = self.data_stack[-1]
 
@@ -63,7 +63,7 @@ class VirtualMachine:
             elif opcode == 0x03:
                 # Reads and swaps top  two elements of the data stack
                 if len(self.data_stack) < 2:
-                    raise ValueError("'SWAP' requires at least two values on the stack.")
+                    raise ValueError("'SWAP' requires at least two values on the data stack.")
                 
                 self.data_stack[-1], self.data_stack[-2] = self.data_stack[-2], self.data_stack[-1]
 
@@ -71,7 +71,7 @@ class VirtualMachine:
             elif opcode == 0x04:
                 #Discards the top element of the data stack
                 if len(self.data_stack) < 1:
-                    raise ValueError("'DROP' requires at least one value on the stack.")
+                    raise ValueError("'DROP' requires at least one value on the data stack.")
                 
                 self.data_stack.pop()
             
@@ -82,7 +82,7 @@ class VirtualMachine:
             elif opcode == 0x10:
                 #performs an adddition operation of the top two elements of the data stack
                 if len(self.data_stack) < 2:
-                    raise ValueError("'ADD' requires at least two values on the stack.")
+                    raise ValueError("'ADD' requires at least two values on the data stack.")
                 
                 right = self.data_stack[-1]
                 left = self.data_stack[-2]
@@ -98,7 +98,7 @@ class VirtualMachine:
             elif opcode == 0x11:
                  #performs an subtraction operation of the top two elements of the data stack
                 if len(self.data_stack) < 2:
-                    raise ValueError("'SUB' requires at least two values on the stack.")
+                    raise ValueError("'SUB' requires at least two values on the data stack.")
                 
                 right = self.data_stack[-1]
                 left = self.data_stack[-2]
@@ -114,7 +114,7 @@ class VirtualMachine:
             elif opcode == 0x12:
                 #performs a bitwise AND operation of the top two elements of the data stack
                 if len(self.data_stack) < 2:
-                    raise ValueError("'AND' requires at least two values on the stack.")
+                    raise ValueError("'AND' requires at least two values on the data stack.")
                 
                 right = self.data_stack[-1]
                 left = self.data_stack[-2]
@@ -127,7 +127,7 @@ class VirtualMachine:
             elif opcode == 0x13:
                 #performs a bitwise OR operation of the top two elements of the data stack
                 if len(self.data_stack) < 2:
-                    raise ValueError("'OR' requires at least two values on the stack.")
+                    raise ValueError("'OR' requires at least two values on the data stack.")
                 
                 right = self.data_stack[-1]
                 left = self.data_stack[-2]
@@ -140,7 +140,7 @@ class VirtualMachine:
             elif opcode == 0x14:
                 #performs a bitwise XOR operation of the top two elements of the data stack
                 if len(self.data_stack) < 2:
-                    raise ValueError("'XOR' requires at least two values on the stack.")
+                    raise ValueError("'XOR' requires at least two values on the data stack.")
                 
                 right = self.data_stack[-1]
                 left = self.data_stack[-2]
@@ -153,7 +153,7 @@ class VirtualMachine:
             elif opcode == 0x15:
                 #performs an bitwise NOT operation of the top two elements of the data stack
                 if len(self.data_stack) < 1:
-                    raise ValueError("'NOT' requires at least one values on the stack.")
+                    raise ValueError("'NOT' requires at least one values on the data stack.")
                 
                 right = self.data_stack[-1]
                 left = self.data_stack[-2]
@@ -172,7 +172,7 @@ class VirtualMachine:
             elif opcode == 0x20:
                  #loads 32 bit value from memory and pushes it to the top of the stack
                  if len(self.data_stack) < 1:
-                    raise ValueError("'LOAD32' requires at least one value on the stack.")
+                    raise ValueError("'LOAD32' requires at least one value on the data stack.")
                  
                  Address = self.data_stack.pop()
 
@@ -189,7 +189,7 @@ class VirtualMachine:
             elif opcode == 0x21:
                 #Stores 32 bit value in memory from values at the top of the stack
                  if len(self.data_stack) < 2:
-                    raise ValueError("'STORE32' requires at least two values on the stack.")
+                    raise ValueError("'STORE32' requires at least two values on the data stack.")
                  
                  Value = self.data_stack.pop()
                  Address = self.data_stack.pop()
@@ -218,7 +218,7 @@ class VirtualMachine:
             elif opcode == 0x31:
                  #Pops one value on the data stack, Jumps if the value is zero.
                  if len(self.data_stack) < 1:
-                    raise ValueError("'JZ' requires at least one value on the stack.")
+                    raise ValueError("'JZ' requires at least one value on the data stack.")
                  
                  Value = self.data_stack.pop()
                  offset = struct.unpack(">h", self.bytecode[self.instruction_pointer:self.instruction_pointer+2])[0]
@@ -231,7 +231,7 @@ class VirtualMachine:
             elif opcode == 0x32:
                 #Pops one value on the data stack, Jumps if the value isnt zero.
                  if len(self.data_stack) < 1:
-                    raise ValueError("'JNZ' requires at least one value on the stack.")
+                    raise ValueError("'JNZ' requires at least one value on the data stack.")
                  
                  Value = self.data_stack.pop()
                  offset = struct.unpack(">h", self.bytecode[self.instruction_pointer:self.instruction_pointer+2])[0]
@@ -249,15 +249,21 @@ class VirtualMachine:
                 self.return_stack.append(return_pos)
 
                 self.instruction_pointer = instruction_start + offset
-                
+
             #RET
-            elif opcode == 0x33:
-                print("TEMP")
+            elif opcode == 0x34:
+                 #Reads a value from the return stack, returns the pointer to that position
+                 if len(self.return_stack) < 1:
+                    raise ValueError("'RET' requires at least one value on the return stack.")
+                 
+                 return_pos = self.return_stack.pop()
+
+                 self.instruction_pointer = return_pos
 
 
             # System OPCODES
             
-            #JMP
+            #SYSCALL
             elif opcode == 0x40:
                 print("TEMP")
 
