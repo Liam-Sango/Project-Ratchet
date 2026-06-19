@@ -242,7 +242,14 @@ class VirtualMachine:
 
             #CALL
             elif opcode == 0x33:
-                print("TEMP")
+                #reads a relative jump offset, saves the return address onto the return stack, then jumps to the target
+                offset = struct.unpack(">h", self.bytecode[self.instruction_pointer:self.instruction_pointer+2])[0]
+                return_pos = self.instruction_pointer + 2
+
+                self.return_stack.append(return_pos)
+
+                self.instruction_pointer = instruction_start + offset
+                
             #RET
             elif opcode == 0x33:
                 print("TEMP")
