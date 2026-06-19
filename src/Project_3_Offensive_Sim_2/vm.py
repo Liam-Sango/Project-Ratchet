@@ -1,3 +1,5 @@
+import struct
+
 class VirtualMachine:
        
     def __init__(self, bytecode, memory_size=4096):
@@ -26,6 +28,7 @@ class VirtualMachine:
         while not self.is_halted and self.instruction_pointer < len(self.bytecode):
 
             opcode = self.bytecode[self.instruction_pointer]
+            instruction_start = self.instruction_pointer
             self.instruction_pointer += 1
 
             # Stack OPCODES
@@ -205,7 +208,12 @@ class VirtualMachine:
             
             #JMP
             elif opcode == 0x30:
-                print("TEMP")
+                #Jumps to offset from the instruction start.
+                offset = struct.unpack(">h", self.bytecode[self.instruction_pointer:self.instruction_pointer+2])[0]
+                self.instruction_pointer += 2
+
+                self.instruction_pointer = instruction_start + offset
+
             #JZ
             elif opcode == 0x31:
                 print("TEMP")
