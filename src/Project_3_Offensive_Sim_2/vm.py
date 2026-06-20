@@ -1,5 +1,7 @@
 import struct
 import logging
+import time
+import gc
 
 # Configure syscall logging
 logging.basicConfig(level=logging.INFO)
@@ -72,7 +74,7 @@ sys_call_table = {
 
 class VirtualMachine:
        
-    def __init__(self, bytecode, memory_size=4096):
+    def __init__(self, bytecode, memory_size=4096, time_limit=5):
            
            if not isinstance(memory_size, int):
                raise ValueError("Memory size must be an integer")
@@ -93,13 +95,21 @@ class VirtualMachine:
            self.instruction_pointer = 0
            self.is_halted = False
    
-    def run(self):
+    def run(self, time_limit):
 
+        self.start_time = time.monotonic()
         while not self.is_halted and self.instruction_pointer < len(self.bytecode):
 
+            #Execution
             opcode = self.bytecode[self.instruction_pointer]
             instruction_start = self.instruction_pointer
             self.instruction_pointer += 1
+
+            #Timekeeping
+            elapsed_time = time.monotonic()
+            if elapsed_time >= self.start_time + time_limit:
+                self.is_halted = True
+                break
 
             # Stack OPCODES
 
@@ -332,7 +342,6 @@ class VirtualMachine:
 
             # System OPCODES
             
-            
             #SYSCALL
             elif opcode == 0x40:
                 if self.instruction_pointer >= len(self.bytecode):
@@ -356,9 +365,11 @@ class VirtualMachine:
             elif opcode == 0xFF:
                 self.is_halted = True
 
-
             else: 
                 raise ValueError (f"Unknown opcode: {opcode}")
+    
+    def wipe():
+        print("TEMP")
 
 
 def execute_bytecode(bytecode: bytearray | bytes, memory_size : int = 4096):
