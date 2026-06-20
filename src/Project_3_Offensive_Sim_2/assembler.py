@@ -182,7 +182,7 @@ def parsed_bytecode_line(instruction):
     
 
 def assemble_payload(bytecode):
-    bytearray = b""
+    payload = b""
     TWO_BYTE_OPS = {"JMP", "JZ", "JNZ", "CALL"}
 
     if isinstance(bytecode, str):

@@ -87,15 +87,47 @@ class VirtualMachine:
     
            if memory_size <= 0:
              raise ValueError("Memory size must be above 0")
-          
+           
            self.bytecode = bytearray(bytecode)
            self.data_stack = []
            self.return_stack = []
            self.memory = bytearray(memory_size)
            self.instruction_pointer = 0
            self.is_halted = False
-   
-    def run(self, time_limit):
+           self.time_limit = time_limit
+
+    def wipe(self):
+        #Wipe the data stack
+        for x in range(len(self.data_stack)):
+            self.data_stack[x] = 0
+
+        #Wipe the return stack
+        for x in range(len(self.return_stack)):
+            self.return_stack[x] = 0
+         
+        #Wipe the VM memory
+        for x in range(len(self.memory)):
+            self.memory[x] = 0
+
+        #Wipe the bytecode buffer
+        for x in range(len(self.bytecode)):
+            self.bytecode[x] = 0
+
+        #Do a final clear of all variables.
+
+        self.data_stack.clear()
+        self.return_stack.clear()
+        self.memory.clear()
+        self.bytecode.clear()
+        
+        #Run the garbage collector
+        gc.collect()
+
+
+    def run(self, time_limit=None):
+
+        if time_limit is None:
+            time_limit = self.time_limit
 
         self.start_time = time.monotonic()
         while not self.is_halted and self.instruction_pointer < len(self.bytecode):
@@ -122,7 +154,7 @@ class VirtualMachine:
                     if self.instruction_pointer >= len(self.bytecode):
                         raise ValueError (" 'PUSH32' Requires at least four additional operand bytes in the bytecode")
                     
-                    byte_arr_32 += self.bytecode[self.instruction_pointer]
+                    byte_arr_32 += bytes([self.bytecode[self.instruction_pointer]])
                     self.instruction_pointer += 1
 
                 int_32 = int.from_bytes(byte_arr_32, byteorder="big")
@@ -367,15 +399,22 @@ class VirtualMachine:
 
             else: 
                 raise ValueError (f"Unknown opcode: {opcode}")
-    
-    def wipe():
-        print("TEMP")
 
 
 def execute_bytecode(bytecode: bytearray | bytes, memory_size : int = 4096):
 
     vm = VirtualMachine(bytecode, memory_size)
-    vm.run()
+    try:
+        vm.run()
+        result = {
+            "is_halted": vm.is_halted,
+            "instruction_pointer": vm.instruction_pointer,
+            "data_stack": list(vm.data_stack),
+            "return_stack": list(vm.return_stack),
+            "memory": bytes(vm.memory),
+        }
+    finally:
+        vm.wipe()
 
-    return vm
+    return result
     
