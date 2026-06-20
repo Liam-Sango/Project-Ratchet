@@ -1,6 +1,6 @@
 import os
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-from cryptography.exceptions import InvalidToken
+from cryptography.exceptions import InvalidTag
 from src.Project_3_Offensive_Sim_2.keys import derive_cmd_key, advance_ratchet
 
 #Replaces a key with zero.
@@ -26,5 +26,22 @@ def encrypt_task(bytecode: bytes, K_ratchet: bytes) -> tuple[bytes, bytes]:
 
     return(payload, new_k_ratchet)
 
-def decrypt_task(payload: bytes, k_ratchet: bytes) -> tuple[bytes, bytes] | None:
-    print("ABC")
+def decrypt_task(payload: bytes, K_ratchet: bytes) -> tuple[bytes, bytes] | None:
+    salt = payload[0:16]
+    iv = payload[16:28]
+    ciphertext_and_tag = payload[28:]
+
+
+    k_cmd = bytearray(derive_cmd_key(K_ratchet, salt))
+    aesgcm = AESGCM(bytes(k_cmd))
+
+    try:
+        plaintext_bytecode = aesgcm.decrypt(iv, ciphertext_and_tag, None)
+    except InvalidTag:
+        zero_key(k_cmd)
+        return None
+    else:
+        zero_key(k_cmd)
+        new_k_ratchet = advance_ratchet(K_ratchet)
+        return plaintext_bytecode, new_k_ratchet
+
