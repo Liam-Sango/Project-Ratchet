@@ -1,5 +1,6 @@
 import requests
 import uuid
+import arweave
 
 GATEWAYS = ["https://arweave.net", "https://ar-io.net"]
 
@@ -51,7 +52,29 @@ def download_image(txid, gateway=None):
     raise last_exception
 
 def upload_image(wallet, image_path):
-    print("TEMP")
+
+    #Read our image file as raw bytes
+    with open(image_path, 'rb') as file:
+            image_data = file.read()
+
+    #Create an Arweave transaction
+    transaction = arweave.Transaction(wallet, data=image_data)
+
+    #Create a ContentType tag
+    transaction.add_tag("Content-Type", "image/png")
+
+    #Sign the transaction
+    transaction.sign()
+
+    #send the transaction
+    transaction.send()
+
+    return transaction.id
+
+
+
+
+    
 
     
     
