@@ -1,7 +1,16 @@
 import PIL.Image
 
 def bytes_to_bits(data: bytes) -> list[int]:
-    print("TEMP")
+    bit_list = []
+
+    for x in range(len(data)):
+        byte_value = data[x]
+
+        for position in range(7, -1, -1):
+            bit = (byte_value >> position) & 1
+            bit_list.append(bit)
+
+    return bit_list
 
 def bits_to_bytes(bits: list[int]) -> bytes:
     print("TEMP")
