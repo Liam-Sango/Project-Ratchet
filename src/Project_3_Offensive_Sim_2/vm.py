@@ -157,7 +157,7 @@ class VirtualMachine:
                     byte_arr_32 += bytes([self.bytecode[self.instruction_pointer]])
                     self.instruction_pointer += 1
 
-                int_32 = int.from_bytes(byte_arr_32, byteorder="big")
+                int_32 = int.from_bytes(byte_arr_32, byteorder="big", signed=True)
 
                 self.data_stack.append(int_32)
 

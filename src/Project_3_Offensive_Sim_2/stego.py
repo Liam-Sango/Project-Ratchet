@@ -2,6 +2,7 @@ import hashlib
 import hmac
 import PIL.Image
 import numpy
+
 def bytes_to_bits(data: bytes) -> list[int]:
     bit_list = []
 
