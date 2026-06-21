@@ -26,12 +26,33 @@ class MockArweave:
         else:
             raise KeyError ("TXID is not present in self.store")
 
-  
+#Downloads an image from an Arweave gateway, falling back through GATEWAYS on failure
 def download_image(txid, gateway=None):
-    print("TEMP")
+    
+    #If a specific gateway is provided, use only that gateway
+    if gateway is not None:
+        url = f"{gateway}/{txid}"
+        response = requests.get(url, timeout=30)
+        response.raise_for_status()
+        return response.content
+
+    #Otherwise try each gateway in order, falling back on failure
+    last_exception = None
+    for gateway in GATEWAYS:
+        url = f"{gateway}/{txid}"
+        try:
+            response = requests.get(url, timeout=30)
+            response.raise_for_status()
+            return response.content
+        except requests.exceptions.RequestException as e:
+            last_exception = e
+            continue
+
+    raise last_exception
 
 def upload_image(wallet, image_path):
     print("TEMP")
+
     
     
 
