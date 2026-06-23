@@ -1,9 +1,8 @@
 import logging
-import PIL
-import tempfile
 import os
+import argparse
 
-# Configure logging before importing project modules
+#Configure logging before importing project modules
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s - %(levelname)s - %(message)s",
@@ -12,50 +11,35 @@ logging.basicConfig(
         logging.StreamHandler(),
     ]
 )
-#Creates logger object
 logger = logging.getLogger(__name__)
 
-
-#Creates CLI using argparse
-
-#Main parser
-import argparse
-parser = argparse.ArgumentParser(prog='MAIN', usage="WILL BE FILLED OUT", description="WILL BE FILLED OUT")
-subparser = parser.add_subparsers(dest="Command")
-
-#Server subcommands
-server_parser = subparser.add_parser(name="server", description="server commands", prog="MAIN")
-
-#--TASK
-server_parser.add_argument("--task", required=True, help="Space seperated assembly")
-#--COVER
-server_parser.add_argument("--cover", required=True, help="Path to the cover image")
-#--MOCK
-server_parser.add_argument("--mock", action="store_true", help="Use mock Arweave instead of real network")
-
-#Agent subcommands
-agent_parser  = subparser.add_parser(name="agent", description="agent commands", prog="MAIN")
-
-#--TXID
-agent_parser.add_argument("--txid", required=True, help="The TXID")
-#--MOCK
-agent_parser.add_argument("--mock", action="store_true", help="Use mock Arweave instead of real network")
-
 #Imports
-from src.Project_3_Offensive_Sim_2.keys import K_ratchet
-from src.Project_3_Offensive_Sim_2.keys import K_extract
-
-from src.Project_3_Offensive_Sim_2.assembler import OPCODE_TABLE
-from src.Project_3_Offensive_Sim_2.assembler import assemble_payload
+from src.Project_3_Offensive_Sim_2.keys import K_ratchet, K_extract
+from src.Project_3_Offensive_Sim_2.assembler import OPCODE_TABLE, assemble_payload
 from src.Project_3_Offensive_Sim_2.crypto_wrapper import encrypt_task, decrypt_task
 from src.Project_3_Offensive_Sim_2.stego import embed, extract
 from src.Project_3_Offensive_Sim_2.vm import execute_bytecode
 from src.Project_3_Offensive_Sim_2.arweave_interface import MockArweave
 
+#Creates the CLI using argparse
+parser = argparse.ArgumentParser(prog="MAIN", description="Covert tasking channel orchestrator")
+subparser = parser.add_subparsers(dest="Command")
+
+#Server subcommand
+server_parser = subparser.add_parser(name="server", description="Server commands", prog="MAIN")
+server_parser.add_argument("--task", required=True, help="Space separated assembly")
+server_parser.add_argument("--cover", required=True, help="Path to the cover image")
+server_parser.add_argument("--mock", action="store_true", help="Use mock Arweave instead of real network")
+
+#Agent subcommand
+agent_parser = subparser.add_parser(name="agent", description="Agent commands", prog="MAIN")
+agent_parser.add_argument("--txid", required=True, help="The TXID")
+agent_parser.add_argument("--mock", action="store_true", help="Use mock Arweave instead of real network")
+
 shared_state = {}
 
 def run_server(args):
-    #Splits args.tasks into valid bytecode instructions
+    #Splits args.task into valid bytecode instructions
     task_string = args.task
     task_tokens = task_string.split()
 
@@ -72,8 +56,8 @@ def run_server(args):
 
     if current_instruction:
         lines.append(" ".join(current_instruction))
-    
-    #Assembles the payload.
+
+    #Assembles the payload
     logger.info("Step A, Payload assembly start")
     bytecode = assemble_payload(lines)
     bytecode_length = len(bytecode)
@@ -92,11 +76,12 @@ def run_server(args):
     stego_dir = "src/Project_3_Offensive_Sim_2/temp"
     os.makedirs(stego_dir, exist_ok=True)
     stego_path = os.path.join(stego_dir, "stego.png")
-    stego_image.save(stego_path)   
+    stego_image.save(stego_path)
 
     logger.info(f"Step B, Embedded image saved to {stego_path}")
     logger.info(f"Step B, Payload embedding finished")
 
+    #Uploads the stego image
     logger.info(f"Step C, Image upload start")
     if args.mock:
         mock = MockArweave()
@@ -104,18 +89,18 @@ def run_server(args):
         logger.info(f"Step C, Image uploaded in transaction_id {txid}")
         logger.info(f"Step C, Image upload finished")
     else:
-    #Finish later
         raise NotImplementedError("Real Arweave upload not configured")
-    
+
+    #Stores shared state for the agent
     shared_state["txid"] = txid
     shared_state["payload_length"] = payload_length
     shared_state["new_ratchet"] = new_ratchet
     shared_state["mock"] = mock
-    
+
 def run_agent(args):
     print("TEMP")
 
-# Parses args and dispatch
+#Parses args and dispatches
 if __name__ == "__main__":
     args = parser.parse_args()
 
@@ -125,5 +110,3 @@ if __name__ == "__main__":
         run_agent(args)
     else:
         parser.print_help()
-
-
