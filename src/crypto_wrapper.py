@@ -1,7 +1,7 @@
 import os
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.exceptions import InvalidTag
-from src.Project_3_Offensive_Sim_2.keys import derive_cmd_key, advance_ratchet
+from src.keys import derive_cmd_key, advance_ratchet
 
 #Replaces a key with zero.
 def zero_key (key: bytearray):

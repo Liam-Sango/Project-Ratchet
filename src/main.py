@@ -14,12 +14,12 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 #Imports
-from src.Project_3_Offensive_Sim_2.keys import K_ratchet, K_extract
-from src.Project_3_Offensive_Sim_2.assembler import OPCODE_TABLE, assemble_payload
-from src.Project_3_Offensive_Sim_2.crypto_wrapper import encrypt_task, decrypt_task
-from src.Project_3_Offensive_Sim_2.stego import embed, extract
-from src.Project_3_Offensive_Sim_2.vm import execute_bytecode
-from src.Project_3_Offensive_Sim_2.arweave_interface import MockArweave
+from src.keys import K_ratchet, K_extract
+from src.assembler import OPCODE_TABLE, assemble_payload
+from src.crypto_wrapper import encrypt_task, decrypt_task
+from src.stego import embed, extract
+from src.vm import execute_bytecode
+from src.arweave_interface import MockArweave
 
 #Creates the CLI using argparse
 parser = argparse.ArgumentParser(prog="MAIN", description="Covert tasking channel orchestrator")
@@ -73,7 +73,7 @@ def run_server(args):
     logger.info(f"Step B, Payload embedding start")
     stego_image = embed(args.cover, payload, K_extract)
 
-    stego_dir = "src/Project_3_Offensive_Sim_2/temp"
+    stego_dir = "src/temp"
     os.makedirs(stego_dir, exist_ok=True)
     stego_path = os.path.join(stego_dir, "stego.png")
     stego_image.save(stego_path)
