@@ -7,17 +7,22 @@ GATEWAYS = ["https://arweave.net", "https://ar-io.net"]
 class MockArweave:
     def __init__(self):
         self.store = {}
+        self.wallet_history= {}
 
     #Stores a mock transaction in self.store
-    def upload_image(self, image_path):
+    def upload_image(self, wallet_address, image_path):
 
         with open(image_path, 'rb') as file:
             image_data = file.read()
 
             txid = uuid.uuid4().hex
             self.store[txid] = image_data
+            
+        if wallet_address not in self.wallet_history:
+            self.wallet_history[wallet_address] = []
 
-            return txid
+        self.wallet_history[wallet_address].append(txid)
+        return txid
 
     #Returns the stored image from self.store
     def download_image(self, txid):
@@ -26,6 +31,20 @@ class MockArweave:
             return stored_bytes
         else:
             raise KeyError("TXID is not present in self.store")
+    
+    #Returns the transactions of a wallet
+    def get_wallet_transactions(self, wallet_address):
+        return self.wallet_history.get(wallet_address, []) 
+    
+    def get_latest_transaction(self, wallet_address):
+         history = self.wallet_history.get(wallet_address, [])
+         
+         if not history:
+             return None
+         else:
+             last_TXID = history[-1]
+             return last_TXID
+         
 
 #Downloads an image from an Arweave gateway, falling back through GATEWAYS on failure
 def download_image(txid, gateway=None):
