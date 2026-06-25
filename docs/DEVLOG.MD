@@ -32,10 +32,6 @@
 # #INCOMPLETE 
 ()
 
-# GUI.PY
-# #INCOMPLETE 
-(Done by an LLM.)
-
 
 # OTHER TASKS
 

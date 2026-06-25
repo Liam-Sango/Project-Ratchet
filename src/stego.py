@@ -3,6 +3,7 @@ import hmac
 import PIL.Image
 import numpy
 
+#Converts a bytes object into a flat list of bits, MSB first per byte
 def bytes_to_bits(data: bytes) -> list[int]:
     bit_list = []
 
@@ -15,20 +16,22 @@ def bytes_to_bits(data: bytes) -> list[int]:
 
     return bit_list
 
+#Converts a flat list of bits back into bytes, MSB first per byte
 def bits_to_bytes(bits: list[int]) -> bytes:
     byte_values = []
 
     for x in range(len(bits) // 8):
-         byte_chunk = 0
+        byte_chunk = 0
 
-         for i in range(8):
+        for i in range(8):
             byte_chunk = (byte_chunk << 1) | bits[(x * 8) + i]
 
-         byte_values.append(byte_chunk)
+        byte_values.append(byte_chunk)
 
     finished_bytes = bytes(byte_values)
     return finished_bytes
 
+#Generates a deterministic shuffled sequence of pixel positions seeded by k_extract
 def generate_positions(image_shape: tuple, k_extract: bytes, num_positions: int) -> list[tuple]:
     height, width, channels = image_shape
     total_positions = height * width * channels
@@ -38,8 +41,10 @@ def generate_positions(image_shape: tuple, k_extract: bytes, num_positions: int)
             f"Requested {num_positions} positions but image only has {total_positions}."
         )
 
+    #Derives a fixed-length seed from k_extract via SHA-256 so any key length works
     seed_bytes = hashlib.sha256(k_extract).digest()
 
+    #Generates unique positions using HMAC-SHA256 in counter mode as a CSPRNG
     used = set()
     positions = []
     counter = 0
@@ -54,6 +59,7 @@ def generate_positions(image_shape: tuple, k_extract: bytes, num_positions: int)
             continue
         used.add(index)
 
+        #Maps a flat index to (x, y, channel) coordinates
         n = index
         channel = n % 3
         n = n // 3
@@ -63,6 +69,7 @@ def generate_positions(image_shape: tuple, k_extract: bytes, num_positions: int)
 
     return positions
 
+#Embeds a payload into the LSBs of a cover image at keyed positions
 def embed(cover_image_path: str, payload: bytes, k_extract: bytes) -> PIL.Image:
     image = PIL.Image.open(cover_image_path).convert("RGB")
     pixels = numpy.array(image, dtype=numpy.uint8)
@@ -70,11 +77,13 @@ def embed(cover_image_path: str, payload: bytes, k_extract: bytes) -> PIL.Image:
     bits = bytes_to_bits(payload)
     positions = generate_positions(pixels.shape, k_extract, len(bits))
 
+    #Writes each payload bit into the LSB of the target pixel channel
     for bit, (x, y, channel) in zip(bits, positions):
         pixels[y, x, channel] = (pixels[y, x, channel] & 0xFE) | bit
 
     return PIL.Image.fromarray(pixels)
 
+#Extracts a payload from the LSBs of a stego image at keyed positions
 def extract(stego_image_path: str, k_extract: bytes, payload_length: int) -> bytes:
     image = PIL.Image.open(stego_image_path).convert("RGB")
     pixels = numpy.array(image, dtype=numpy.uint8)
@@ -82,6 +91,7 @@ def extract(stego_image_path: str, k_extract: bytes, payload_length: int) -> byt
     num_bits = payload_length * 8
     positions = generate_positions(pixels.shape, k_extract, num_bits)
 
+    #Reads the LSB of each selected pixel channel to collect bits
     bits = []
     for (x, y, channel) in positions:
         bits.append(int(pixels[y, x, channel] & 1))
