@@ -100,7 +100,7 @@ def agent_load_agent_keys(keyfile_path):
 #Wallet functions
 
 def load_wallet(keyfile_path):
-    print("ABC")
+     return arweave.Wallet(keyfile_path)
 
 
 
