@@ -61,11 +61,40 @@ def server_load_server_keys(keyfile_path):
 
 #Agent side functions
 
+#saves agent keys to keyfile
 def agent_save_agent_keys(keyfile_path, K_ratchet, K_exfil_ratchet, K_extract):
-    print("ABC")
+    #Saves agent keys to temp dict
+    agent_keys = {
+        "K_ratchet": K_ratchet.hex(),
+        "K_exfil_ratchet": K_exfil_ratchet.hex(),
+        "K_extract": K_extract.hex(),
+    }
 
+    #saves agent keys to keyfile
+    with open(keyfile_path, "w") as f:
+        json.dump(agent_keys, f)
+
+#Loads agent keys from keyfiles
 def agent_load_agent_keys(keyfile_path):
-    print("ABC")
+    #Tries to open keyfile
+    try: 
+        with open(keyfile_path, "r") as f:
+            data = json.load(f)
+            K_ratchet = bytes.fromhex(data["K_ratchet"])
+            K_exfil_ratchet = bytes.fromhex(data["K_exfil_ratchet"])
+            K_extract = bytes.fromhex(data["K_extract"])
+    #if keyfile isnt found
+    except FileNotFoundError:
+        raise FileNotFoundError("Keyfile Not Found")
+    
+    #Returns agent keys
+    agent_keys = {
+        "K_ratchet": K_ratchet,
+        "K_exfil_ratchet": K_exfil_ratchet,
+        "K_extract": K_extract,
+    }
+
+    return agent_keys
 
 
 #Wallet functions
