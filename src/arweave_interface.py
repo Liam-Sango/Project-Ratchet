@@ -90,3 +90,57 @@ def upload_image(wallet, image_path):
     transaction.send()
 
     return transaction.id
+
+#Gets wallet transaction history on arweave
+def get_wallet_transactions(wallet_address, gateway=None):
+    #Builds our GraphQL query
+    query = {
+        "query": """
+        query {
+          transactions(
+            owners: ["%s"]
+            tags: [{ name: "Content-Type", values: ["image/png"] }]
+            first: 100
+            sort: HEIGHT_ASC
+          ) {
+            edges {
+              node { id }
+            }
+          }
+        }
+        """ % wallet_address
+    }
+
+    #If a specific gateway is provided, use only that gateway
+    if gateway is not None:
+        url = f"{gateway}/graphql"
+        response = requests.post(url, json=query, timeout=30)
+        response.raise_for_status()
+        data = response.json()
+        edges = data["data"]["transactions"]["edges"]
+        return [edge["node"]["id"] for edge in edges]
+
+    #Otherwise try each gateway in order, falling back on failure
+    last_exception = None
+    for gateway in GATEWAYS:
+        url = f"{gateway}/graphql"
+        try:
+            response = requests.post(url, json=query, timeout=30)
+            response.raise_for_status()
+            data = response.json()
+            edges = data["data"]["transactions"]["edges"]
+            return [edge["node"]["id"] for edge in edges]
+        except requests.exceptions.RequestException as e:
+            last_exception = e
+            continue
+
+    raise last_exception
+
+#Gets the latest transaction from arweave
+def get_latest_image_txid(wallet_address, gateway=None):
+    txids = get_wallet_transactions(wallet_address, gateway)
+
+    if not txids:
+        return None
+    else:
+        return txids[-1]
