@@ -91,14 +91,22 @@ class VirtualMachine:
         self.buffers = {}     
         self.next_handle = 0   
 
-    #FILL OUT LATER
+    #creates and stores data in the current handle buffer
     def store_buffer(self, data):
-        print("ABC")
+        handle = self.next_handle
+        self.buffers[handle] = data
+        self.next_handle += 1
 
-    #FILL OUT LATER
+        return handle
+
+
+    #Retrieves data stored in handle buffer,
     def get_buffer(self, handle):
-        print("ABC")
-
+        if handle not in self.buffers:
+            raise KeyError("Handle is not in self.buffers.")
+    
+        return self.buffers[handle]
+        
     #FILL OUT LATER
     def read_string(self, address):
         print("ABC")
