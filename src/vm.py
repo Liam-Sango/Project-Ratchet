@@ -99,7 +99,6 @@ class VirtualMachine:
 
         return handle
 
-
     #Retrieves data stored in handle buffer,
     def get_buffer(self, handle):
         if handle not in self.buffers:
@@ -107,9 +106,16 @@ class VirtualMachine:
     
         return self.buffers[handle]
         
-    #FILL OUT LATER
+    #reads and decodes a null terminated string from VM memory
     def read_string(self, address):
-        print("ABC")
+
+         if address >= len(self.memory):
+             raise ValueError("Address must be smaller than self.memory.")
+         
+         mem_end = self.memory.find(b'\0', address)
+         string = self.memory[address:mem_end].decode('utf-8') if mem_end != -1 else self.memory[address:].decode('utf-8')
+
+         return string
 
     #Securely zeroes and clears all ephemeral VM state
     def wipe(self):
