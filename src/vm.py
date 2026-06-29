@@ -41,9 +41,15 @@ def dns_lookup(vm):
     hostname_addr = vm.data_stack.pop()
     return 0
 
+#Stops VM operation for an amount of time using time.sleep
 @log_function_call
 def sleep(vm):
     milliseconds = vm.data_stack.pop()
+
+    if milliseconds < 0:
+        raise ValueError("Milliseconds should be a positive value.")
+
+    time.sleep(milliseconds / 1000)
     return 0
 
 @log_function_call
@@ -51,6 +57,11 @@ def http_get(vm):
     dest_addr = vm.data_stack.pop()
     url_addr = vm.data_stack.pop()
     return 0
+
+@log_function_call
+def arweave_upload(vm):
+    return 0
+
 
 #Syscall table
 sys_call_table = {
@@ -108,7 +119,6 @@ class VirtualMachine:
         
     #reads and decodes a null terminated string from VM memory
     def read_string(self, address):
-
          if address >= len(self.memory):
              raise ValueError("Address must be smaller than self.memory.")
          
