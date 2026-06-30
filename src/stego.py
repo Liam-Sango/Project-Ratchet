@@ -74,7 +74,10 @@ def embed(cover_image_path: str, payload: bytes, k_extract: bytes) -> PIL.Image:
     image = PIL.Image.open(cover_image_path).convert("RGB")
     pixels = numpy.array(image, dtype=numpy.uint8)
 
-    bits = bytes_to_bits(payload)
+    length_prefix = len(payload).to_bytes(4, "big")
+    full_payload = length_prefix + payload
+
+    bits = bytes_to_bits(full_payload)
     positions = generate_positions(pixels.shape, k_extract, len(bits))
 
     #Writes each payload bit into the LSB of the target pixel channel
