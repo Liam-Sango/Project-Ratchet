@@ -91,7 +91,9 @@ def extract(stego_image_path: str, k_extract: bytes) -> bytes:
     image = PIL.Image.open(stego_image_path).convert("RGB")
     pixels = numpy.array(image, dtype=numpy.uint8)
 
-    #Generates positions for the 4-byte length prefix plus the payload
+    total_positions = pixels.shape[0] * pixels.shape[1] * pixels.shape[2]
+
+    #Generates positions for the 4-byte length prefix
     prefix_positions = generate_positions(pixels.shape, k_extract, 32)
     prefix_bits = []
     for (x, y, channel) in prefix_positions:
@@ -100,8 +102,12 @@ def extract(stego_image_path: str, k_extract: bytes) -> bytes:
     prefix_bytes = bits_to_bytes(prefix_bits)
     payload_length = int.from_bytes(prefix_bytes, "big")
 
-    #Generates positions for the full payload (prefix + payload) and skips the first 32
+    #If the decoded length exceeds image capacity, the key is wrong or image is corrupt
     total_bits = 32 + payload_length * 8
+    if total_bits > total_positions:
+        return b""
+
+    #Generates positions for the full payload (prefix + payload) and skips the first 32
     all_positions = generate_positions(pixels.shape, k_extract, total_bits)
 
     #Reads the LSB of each selected pixel channel to collect payload bits
@@ -110,4 +116,5 @@ def extract(stego_image_path: str, k_extract: bytes) -> bytes:
         payload_bits.append(int(pixels[y, x, channel] & 1))
 
     return bits_to_bytes(payload_bits)
+
 
