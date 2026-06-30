@@ -53,6 +53,13 @@ agent_group.add_argument("--watch", action="store_true", help="Poll server walle
 shared_state = {}
 
 def run_server(args):
+    #Load keys from keyfile
+    K_root = server_load_server_keys(args.keyfile)
+    all_keys = server_derive_allkeys(K_root)
+
+    K_ratchet = all_keys["K_ratchet"]
+    K_extract = all_keys["K_extract"]
+
     #Splits args.task into valid bytecode instructions
     task_string = args.task
     task_tokens = task_string.split()
@@ -99,7 +106,7 @@ def run_server(args):
     logger.info(f"Step C, Image upload start")
     if args.mock:
         mock = MockArweave()
-        txid = mock.upload_image(stego_path)
+        txid = mock.upload_image("server_wallet", stego_path)
         logger.info(f"Step C, Image uploaded in transaction_id {txid}")
         logger.info(f"Step C, Image upload finished")
     else:
@@ -107,9 +114,10 @@ def run_server(args):
 
     #Stores shared state for the agent
     shared_state["txid"] = txid
-    shared_state["payload_length"] = payload_length
     shared_state["new_ratchet"] = new_ratchet
     shared_state["mock"] = mock
+    shared_state["K_extract"] = K_extract
+    shared_state["K_ratchet"] = K_ratchet
 
 def run_agent(args):
     print("TEMP")
