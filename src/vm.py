@@ -460,7 +460,13 @@ class VirtualMachine:
                     raise ValueError(f"'SYSCALL' index {index} is not in the syscall table.")
 
                 handler = sys_call_table[index]
-                result = handler(self)
+
+                try:
+                    result = handler(self)
+                except Exception:
+                    logger.exception("SYSCALL handler failed")
+                    self.data_stack.append(-1)
+                    continue
 
                 if result is not None:
                     self.data_stack.append(result)
