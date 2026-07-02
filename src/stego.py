@@ -70,7 +70,7 @@ def generate_positions(image_shape: tuple, k_extract: bytes, num_positions: int)
     return positions
 
 #Embeds a payload into the LSBs of a cover image at keyed positions
-def embed(cover_image_path: str, payload: bytes, k_extract: bytes) -> PIL.Image | None:
+def embed(cover_image_path: str, payload: bytes, k_extract: bytes) -> "PIL.Image.Image | None":
     image = PIL.Image.open(cover_image_path).convert("RGB")
     pixels = numpy.array(image, dtype=numpy.uint8)
 
