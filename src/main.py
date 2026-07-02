@@ -276,7 +276,7 @@ def run_agent(args):
     #Execute the bytecode 
     logger.info("Step D, Bytecode execution start")
     vm_result = execute_bytecode(bytecode, exfil_handler=exfil_handler)
-    logger.info(f"Step D, Bytecode execution vm result is {vm_result}")
+    logger.info(f"Step D, Bytecode execution result: is_halted={vm_result['is_halted']}, instruction_pointer={vm_result['instruction_pointer']}")
     logger.info("Step D, Bytecode execution finished")
 
     #Advance and persist ratchet
