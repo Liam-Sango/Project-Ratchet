@@ -70,7 +70,7 @@ def generate_positions(image_shape: tuple, k_extract: bytes, num_positions: int)
     return positions
 
 #Embeds a payload into the LSBs of a cover image at keyed positions
-def embed(cover_image_path: str, payload: bytes, k_extract: bytes) -> PIL.Image:
+def embed(cover_image_path: str, payload: bytes, k_extract: bytes) -> PIL.Image | None:
     image = PIL.Image.open(cover_image_path).convert("RGB")
     pixels = numpy.array(image, dtype=numpy.uint8)
 
@@ -78,6 +78,12 @@ def embed(cover_image_path: str, payload: bytes, k_extract: bytes) -> PIL.Image:
     full_payload = length_prefix + payload
 
     bits = bytes_to_bits(full_payload)
+
+    #Capacity check before embedding to fail gracefully on overflow
+    total_positions = pixels.shape[0] * pixels.shape[1] * pixels.shape[2]
+    if len(bits) > total_positions:
+        return None
+
     positions = generate_positions(pixels.shape, k_extract, len(bits))
 
     #Writes each payload bit into the LSB of the target pixel channel
@@ -88,7 +94,10 @@ def embed(cover_image_path: str, payload: bytes, k_extract: bytes) -> PIL.Image:
 
 #Extracts a payload from the LSBs of a stego image at keyed positions
 def extract(stego_image_path: str, k_extract: bytes) -> bytes:
-    image = PIL.Image.open(stego_image_path).convert("RGB")
+    try:
+        image = PIL.Image.open(stego_image_path).convert("RGB")
+    except (PIL.UnidentifiedImageError, OSError):
+        return b""
     pixels = numpy.array(image, dtype=numpy.uint8)
 
     total_positions = pixels.shape[0] * pixels.shape[1] * pixels.shape[2]

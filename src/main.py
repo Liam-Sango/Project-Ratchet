@@ -98,6 +98,11 @@ def run_server(args):
     logger.info("Step B, Payload embedding start")
     stego_image = embed(args.cover, payload, K_extract)
 
+    if stego_image is None:
+        logger.info("Step B, Payload embedding failed, payload exceeds cover capacity")
+        logger.info("Step B, Payload embedding finished")
+        return -1
+
     stego_dir = "src/temp"
     os.makedirs(stego_dir, exist_ok=True)
     stego_path = os.path.join(stego_dir, "stego.png")
@@ -169,6 +174,11 @@ def run_agent(args):
         #embed the encrypted payload into the cover image
         logger.info("Exfil handler step B, exfil data embedding start")
         stego_image = embed(cover_path, exfil_payload, K_extract)
+
+        if stego_image is None:
+            logger.info("Exfil handler step B, exfil payload exceeds cover capacity")
+            logger.info("Exfil handler step B, exfil data embedding finished")
+            return -1
 
         stego_dir = "src/temp"
         os.makedirs(stego_dir, exist_ok=True)
