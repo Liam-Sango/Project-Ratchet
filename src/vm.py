@@ -142,7 +142,8 @@ class VirtualMachine:
     #creates and stores data in the current handle buffer
     def store_buffer(self, data):
         handle = self.next_handle
-        self.buffers[handle] = data
+        wrapped_date = bytearray(data)
+        self.buffers[handle] = wrapped_date
         self.next_handle += 1
 
         return handle
@@ -182,6 +183,11 @@ class VirtualMachine:
         #Wipe the bytecode buffer
         for x in range(len(self.bytecode)):
             self.bytecode[x] = 0
+
+        #Wipe the handle buffer
+        for buf in self.buffers.values():
+            for x in range(len(buf)):
+                buf[x] = 0
 
         #Final clear of all variables
         self.data_stack.clear()
