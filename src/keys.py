@@ -20,6 +20,10 @@ def server_generate_k_root():
     K_root = os.urandom(32)
     return K_root
 
+def server_derive_k_extract(K_root):
+    K_extract = hmac.new(K_root, b"EXTRACT", hashlib.sha256).digest()
+    return K_extract
+
 def server_derive_allkeys(K_root):
     server_keys = {}
 

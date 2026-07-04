@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 #Imports
 from src.keys import (
-    server_load_server_keys, server_derive_allkeys, server_save_server_keys,
+    server_load_server_keys, server_derive_allkeys, server_save_server_keys, server_derive_k_extract,
     agent_load_agent_keys, agent_save_agent_keys,
     advance_ratchet, load_wallet
 )
@@ -58,11 +58,15 @@ shared_state = {}
 
 def run_server(args):
     #Load server keys from keyfile
-    K_root = server_load_server_keys(args.keyfile)
-    server_keys = server_derive_allkeys(K_root)
+    key_dict = server_load_server_keys(args.keyfile)
 
-    K_ratchet = server_keys["K_ratchet"]
-    K_extract = server_keys["K_extract"]
+    K_root = key_dict.get("K_root")
+    K_ratchet = key_dict.get("K_ratchet")
+    K_exfil_ratchet = key_dict.get("K_exfil_ratchet")
+    agent_wallet = key_dict.get("agent_wallet")
+    last_seen_txid = key_dict.get("last_seen_txid")
+
+    K_extract = server_derive_k_extract(K_root)
 
     #Splits args.task into valid bytecode instructions
     task_string = args.task
@@ -127,6 +131,16 @@ def run_server(args):
     shared_state["mock"] = mock
     shared_state["K_extract"] = K_extract
     shared_state["K_ratchet"] = K_ratchet
+
+    #Persists the server keys
+    server_save_server_keys(
+        args.keyfile,
+        K_root,
+        new_ratchet,
+        K_exfil_ratchet,
+        agent_wallet,
+        last_seen_txid,
+    )
 
     return 1
 
