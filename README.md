@@ -37,12 +37,8 @@ src/
     stego.py             — Keyed LSB steganography with length-prefix
     arweave_interface.py — MockArweave + real gateway upload/download/wallet-watch
     test_harness.py      — (pending) integration + isolation + failure-mode tests
-docs/
-    TEMP/Offensive SIM/
-        IDEA.MD              — Architecture specification
-        INMPLEMENTATION.md   — Phase-by-phase implementation guide
+    
 ```
-
 ## Usage
 
 ### Server (send a task)
@@ -89,7 +85,3 @@ python -m src.main agent --keyfile agent.json --wallet wallet.json --watch --moc
 - `zero_key` is best-effort (Python's `cryptography` library may retain internal key copies)
 - Server-side exfil retrieval not yet implemented
 - Test harness (`test_harness.py`) not yet implemented
-
-## Status
-
-See `docs/TEMP/Offensive SIM/INMPLEMENTATION.md` for the phase-by-phase implementation guide.
