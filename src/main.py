@@ -38,10 +38,14 @@ subparser = parser.add_subparsers(dest="Command")
 server_parser = subparser.add_parser(name="server", description="Server commands", prog="MAIN")
 
 server_parser.add_argument("--keyfile", required=True, help="Path to keyfile")
-server_parser.add_argument("--task", required=True, help="Space separated assembly")
-server_parser.add_argument("--cover", required=True, help="Path to the cover image")
+server_parser.add_argument("--cover", help="Path to the cover image")
 server_parser.add_argument("--wallet", required=True, help="Path to arweave wallet file")
 server_parser.add_argument("--mock", action="store_true", help="Use mock Arweave instead of real network")
+
+server_group = server_parser.add_mutually_exclusive_group(required=True)
+
+server_group.add_argument("--task", help="Space-separated assembly bytecode to send as a tasking")
+server_group.add_argument("--retrieve", help="Retrieve and decrypt exfiltrated key material from the agent wallet")
 
 #Agent subcommand
 agent_parser = subparser.add_parser(name="agent", description="Agent commands", prog="MAIN")
