@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import tempfile, os, argparse, json
+import tempfile, os, argparse
 from PIL import Image
 from src.main import run_server, run_agent, shared_state
 from src.keys import server_generate_k_root, server_derive_allkeys, server_save_server_keys, agent_save_agent_keys, server_load_server_keys, agent_load_agent_keys
@@ -69,7 +69,7 @@ def test_full_loop_integration() -> None:
                 task=exfil_task,
                 retrieve=None,
             )
-            assert run_server (server_args) == 1, "server send should return 1"
+            assert run_server(server_args) == 1, "server send should return 1"
 
             server_keys = server_load_server_keys(server_keyfile)
 
@@ -112,7 +112,29 @@ def test_full_loop_integration() -> None:
                 "agent key material must not include K_root"
             )
 
-            # TODO: server retrieve + post-retrieve exfil ratchet asserts
+            # Server retrieve: pull agent exfil from mock wallet and advance K_exfil_ratchet
+            retrieve_args = argparse.Namespace(
+                keyfile=server_keyfile,
+                wallet=wallet_path,
+                mock=True,
+                task=None,
+                retrieve=True,
+            )
+
+            assert run_server(retrieve_args) == 1, "server retrieve should return 1"
+
+            agent_keys = agent_load_agent_keys(agent_keyfile)
+            server_keys = server_load_server_keys(server_keyfile)
+
+            assert server_keys["K_exfil_ratchet"] != initial_exfil_ratchet, (
+                "after server retrieve: server exfil ratchet should have advanced"
+            )
+            assert server_keys["K_exfil_ratchet"] == agent_keys["K_exfil_ratchet"], (
+                "after server retrieve: server and agent exfil ratchets should match"
+            )
+            assert agent_keys["K_ratchet"] == server_keys["K_ratchet"], (
+                "after server retrieve: task ratchets should still match"
+            )
 
         finally:
             os.chdir(old_dir)
