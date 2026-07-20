@@ -381,7 +381,8 @@ def run_agent(args):
     os.makedirs(stego_dir, exist_ok=True)
     stego_path = os.path.join(stego_dir, "stego.png")
     stego_image.save(stego_path)
-
+    shared_state["cover_path"] = stego_path
+    
     logger.info(f"Step B, Bootstrap image saved to {stego_path}")
 
     #Extract the payload from the bootstrap image
