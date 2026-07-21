@@ -1,8 +1,19 @@
 from __future__ import annotations
-
 import tempfile, os, argparse
 from PIL import Image
-from src.main import run_server, run_agent, shared_state
+
+from src.main import (
+     run_server, 
+     run_agent, 
+     shared_state 
+)
+
+from src.crypto_wrapper import (
+    encrypt_task,
+    decrypt_task,
+    derive_cmd_key,
+)
+
 from src.keys import (
     server_generate_k_root,
     server_derive_k_extract,
@@ -147,7 +158,7 @@ def test_full_loop_integration() -> None:
 
         finally:
             os.chdir(old_dir)
-            
+
 def test_keys_isolation() -> None:
     with tempfile.TemporaryDirectory() as td:
         # Temp keyfile paths and fixture wallet/txid strings
@@ -298,8 +309,54 @@ def test_keys_isolation() -> None:
         )    
 
 def test_crypto_roundtrip_and_tamper() -> None:
-    raise NotImplementedError
+    # Round 1: clean encrypt → decrypt with the same ratchet
+    k1 = os.urandom(32)
+    pt1 = b"FIRST_TASK"
 
+    payload_1, K1_After_Enc = encrypt_task(pt1, k1)
+    result = decrypt_task(payload_1, k1)
+
+    assert result is not None, (
+        "decrypt of untampered payload must succeed"
+    )
+
+    pt1_out, k1_After_Dec = result
+
+    # Plaintext recovered; both sides advanced the ratchet the same way
+    assert pt1_out == pt1, (
+        "decrypted plaintext must match original"
+    )
+
+    assert K1_After_Enc == k1_After_Dec, (
+        "encrypt and decrypt must advance the ratchet to the same value"
+    )
+
+    assert k1 != K1_After_Enc, (
+        "encrypt must advance the ratchet away from the input key"
+    )
+
+    assert k1 != k1_After_Dec, (
+        "decrypt must advance the ratchet away from the input key"
+    )
+
+    # Round 2: flip payload bits → decrypt must fail closed
+    k2 = os.urandom(32)
+    pt2 = b"SECOND_TASK"
+
+    payload_2, K2_After_Enc = encrypt_task(pt2, k2)
+
+    # Invert every other byte so GCM auth tag / ciphertext is invalid
+    mut = bytearray(payload_2)
+    for i in range(0, len(mut), 2):
+        mut[i] ^= 0xFF
+    payload_3 = bytes(mut)
+
+    # Tampered ciphertext must not decrypt
+    payload_3_out = decrypt_task(payload_3, k2)
+
+    assert payload_3_out is None, (
+        "decrypt of tampered payload must return None"
+    )
 
 def test_stego_roundtrip() -> None:
     raise NotImplementedError
