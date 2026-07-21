@@ -3,7 +3,16 @@ from __future__ import annotations
 import tempfile, os, argparse
 from PIL import Image
 from src.main import run_server, run_agent, shared_state
-from src.keys import server_generate_k_root, server_derive_allkeys, server_save_server_keys, agent_save_agent_keys, server_load_server_keys, agent_load_agent_keys
+from src.keys import (
+    server_generate_k_root,
+    server_derive_k_extract,
+    server_derive_allkeys,
+    server_save_server_keys,
+    agent_save_agent_keys,
+    server_load_server_keys,
+    agent_load_agent_keys,
+    advance_ratchet,
+)
 
 def test_full_loop_integration() -> None:
     with tempfile.TemporaryDirectory() as td:
@@ -138,11 +147,155 @@ def test_full_loop_integration() -> None:
 
         finally:
             os.chdir(old_dir)
-
-
+            
 def test_keys_isolation() -> None:
-    raise NotImplementedError
+    with tempfile.TemporaryDirectory() as td:
+        # Temp keyfile paths and fixture wallet/txid strings
+        server_keyfile = os.path.join(td, "server.json")
+        agent_keyfile = os.path.join(td, "agent.json")
 
+        agent_wallet = "AGENT_WALLET"
+        last_seen_txid = "LAST_SEEN_TXID"
+        cover_path = "COVER_PATH"
+
+        # Generate server root and derive initial ratchets / K_extract
+        k_root = server_generate_k_root()
+        d = server_derive_allkeys(k_root)
+
+
+        assert len(k_root) == 32, (
+            "K_root must be 32 bytes"
+        )
+            
+        
+        # K_extract must match standalone derive from the same K_root
+
+
+        assert d["K_extract"] == server_derive_k_extract(k_root), (
+            "derived K_extract must match server_derive_k_extract(K_root)"
+        )
+
+        assert len(d["K_ratchet"]) == 32, (
+            "K_ratchet must be 32 bytes"
+        )
+
+        assert len(d["K_exfil_ratchet"]) == 32, (
+            "K_exfil_ratchet must be 32 bytes"
+        )
+
+        assert len(d["K_extract"]) == 32, (
+            "K_extract must be 32 bytes"
+        )
+
+        # Derived keys must be distinct from each other and from K_root
+
+
+        assert d["K_ratchet"] != d["K_exfil_ratchet"], (
+            "task and exfil ratchets must differ"
+        )
+
+        assert d["K_ratchet"] != k_root, (
+            "K_ratchet must not equal K_root"
+        )
+
+        assert d["K_exfil_ratchet"] != k_root, (
+            "K_exfil_ratchet must not equal K_root"
+        )
+
+        # Persist server keys and reload from disk
+
+        server_save_server_keys(
+            keyfile_path=server_keyfile,
+            K_root=k_root,
+            K_ratchet=d["K_ratchet"],
+            K_exfil_ratchet=d["K_exfil_ratchet"],
+            agent_wallet=agent_wallet,
+            last_seen_txid=last_seen_txid
+        )
+
+        server_keys = server_load_server_keys(server_keyfile)
+
+        # Loaded server state must match what was saved
+
+        assert server_keys["K_root"] == k_root, (
+            "loaded K_root must match saved K_root"
+        )
+
+        assert server_keys["K_ratchet"] == d["K_ratchet"], (
+            "loaded K_ratchet must match saved K_ratchet"
+        )
+
+        assert server_keys["K_exfil_ratchet"] == d["K_exfil_ratchet"], (
+            "loaded K_exfil_ratchet must match saved K_exfil_ratchet"
+        )
+
+        assert server_keys["agent_wallet"] == agent_wallet, (
+            "loaded agent_wallet must match saved agent_wallet"
+        )
+
+        assert server_keys["last_seen_txid"] == last_seen_txid, (
+            "loaded last_seen_txid must match saved last_seen_txid"
+        )
+
+        # Persist agent keys (no K_root) and reload from disk
+        # Fixture string agent_wallet is the agent's server_wallet field
+        agent_save_agent_keys(
+            keyfile_path=agent_keyfile,
+            K_ratchet=d["K_ratchet"],
+            K_exfil_ratchet=d["K_exfil_ratchet"],
+            K_extract=d["K_extract"],
+            server_wallet=agent_wallet,
+            last_seen_txid=last_seen_txid,
+            cover_path=cover_path,
+        )
+
+        agent_keys = agent_load_agent_keys(agent_keyfile)
+
+        # Loaded agent state must match what was saved; K_root must be absent
+        assert agent_keys["K_ratchet"] == d["K_ratchet"], (
+            "loaded agent K_ratchet must match saved K_ratchet"
+        )
+
+        assert agent_keys["K_exfil_ratchet"] == d["K_exfil_ratchet"], (
+            "loaded agent K_exfil_ratchet must match saved K_exfil_ratchet"
+        )
+
+        assert agent_keys["K_extract"] == d["K_extract"], (
+            "loaded agent K_extract must match saved K_extract"
+        )
+
+        assert agent_keys["server_wallet"] == agent_wallet, (
+            "loaded server_wallet must match saved server_wallet"
+        )
+
+        assert agent_keys["last_seen_txid"] == last_seen_txid, (
+            "loaded agent last_seen_txid must match saved last_seen_txid"
+        )
+
+        assert agent_keys["cover_path"] == cover_path, (
+            "loaded cover_path must match saved cover_path"
+        )
+
+        assert "K_root" not in agent_keys, (
+            "agent key dict must not include K_root"
+        )
+
+        # advance_ratchet one-way and deterministic
+        r1 = advance_ratchet(d["K_ratchet"])
+
+        assert r1 != d["K_ratchet"], (
+            "advance_ratchet must change the ratchet"
+        )
+
+        r2 = advance_ratchet(r1)
+
+        assert r2 != r1, (
+            "second advance must differ from first"
+        )
+
+        assert advance_ratchet(d["K_ratchet"]) == r1, (
+            "advance_ratchet must be deterministic for the same input"
+        )    
 
 def test_crypto_roundtrip_and_tamper() -> None:
     raise NotImplementedError
