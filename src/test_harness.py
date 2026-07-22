@@ -14,6 +14,11 @@ from src.crypto_wrapper import (
     derive_cmd_key,
 )
 
+from src.stego import (
+    embed,
+    extract,
+)
+
 from src.keys import (
     server_generate_k_root,
     server_derive_k_extract,
@@ -34,7 +39,6 @@ def test_full_loop_integration() -> None:
         wallet_path = os.path.join(td, "wallet.json")
         secret_bin = os.path.join(td, "secret.bin")
 
-        #Place a comment here later
         byte_val = b"LOL"
         with open(secret_bin, "wb") as f:
             f.write(byte_val)
@@ -359,8 +363,39 @@ def test_crypto_roundtrip_and_tamper() -> None:
     )
 
 def test_stego_roundtrip() -> None:
-    raise NotImplementedError
+    with tempfile.TemporaryDirectory() as td:
+        # Temp paths for cover and stego images
+        cover_path = os.path.join(td, "cover.png")
+        stego_path = os.path.join(td, "stego.png")
 
+        # Large enough RGB cover for payload + 4-byte length prefix
+        Image.new("RGB", (512, 512), (128, 128, 128)).save(cover_path)
+
+        k_wrong = os.urandom(32)
+        k = os.urandom(32)
+
+        payload = b"STEGO_TEST"
+
+        # Embed payload at keyed LSB positions
+        stego_img = embed(cover_path, payload, k)
+
+        assert stego_img is not None, (
+            "embed must succeed for a payload within cover capacity"
+        )
+
+        stego_img.save(stego_path)
+
+        # Correct key recovers payload; wrong key must not
+        stego_out = extract(stego_path, k)
+        bad_stego_out = extract(stego_path, k_wrong)
+
+        assert stego_out == payload, (
+            "extract with correct K_extract must recover the embedded payload"
+        )
+
+        assert bad_stego_out != payload, (
+            "extract with wrong K_extract must not recover the payload"
+        )
 
 def test_arweave_mock_wallet_history() -> None:
     raise NotImplementedError
