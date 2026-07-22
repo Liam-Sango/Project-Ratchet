@@ -19,6 +19,10 @@ from src.stego import (
     extract,
 )
 
+from src.arweave_interface import (
+    MockArweave,
+)
+
 from src.keys import (
     server_generate_k_root,
     server_derive_k_extract,
@@ -398,8 +402,63 @@ def test_stego_roundtrip() -> None:
         )
 
 def test_arweave_mock_wallet_history() -> None:
-    raise NotImplementedError
+    with tempfile.TemporaryDirectory() as td:
+        mock = MockArweave()
+        image_path = os.path.join(td, "cover.png")
+        wallet_1 = "ABCDEF"
+        wallet_2 = "GHIJKL"
 
+        # Fresh mock: no history for either wallet
+        assert mock.get_wallet_transactions(wallet_1) == [], (
+            "wallet_1 history must start empty"
+        )
+        assert mock.get_wallet_transactions(wallet_2) == [], (
+            "wallet_2 history must start empty"
+        )
+        assert mock.get_latest_transaction(wallet_1) is None, (
+            "latest tx for empty wallet_1 must be None"
+        )
+
+        Image.new("RGB", (512, 512), (128, 128, 128)).save(image_path)
+
+        # Two uploads from wallet_1; wallet_2 must stay empty
+        w1_t1_txid = mock.upload_image(wallet_1, image_path)
+        assert mock.get_wallet_transactions(wallet_2) == [], (
+            "wallet_2 must stay empty when only wallet_1 uploads"
+        )
+
+        w1_t2_txid = mock.upload_image(wallet_1, image_path)
+        assert w1_t1_txid != w1_t2_txid, (
+            "successive uploads must produce distinct txids"
+        )
+
+        w1_history = mock.get_wallet_transactions(wallet_1)
+        assert len(w1_history) == 2, (
+            "wallet_1 history length must match upload count"
+        )
+        assert w1_history[0] == w1_t1_txid, (
+            "first history entry must be the first upload txid"
+        )
+        assert w1_history[1] == w1_t2_txid, (
+            "second history entry must be the second upload txid"
+        )
+        assert mock.get_latest_transaction(wallet_1) == w1_t2_txid, (
+            "latest transaction must be the most recent upload"
+        )
+
+        with open(image_path, "rb") as f:
+            on_disk = f.read()
+
+        assert mock.download_image(w1_t1_txid) == on_disk, (
+            "download_image must return the uploaded file bytes"
+        )
+
+        try:
+            mock.download_image("not_a_real_txid")
+            assert False, "download of unknown txid must raise KeyError"
+        except KeyError:
+            pass
+    
 
 def test_vm_execute_and_wipe() -> None:
     raise NotImplementedError
