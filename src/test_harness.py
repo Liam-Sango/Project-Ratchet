@@ -542,8 +542,50 @@ def test_failure_wrong_k_extract() -> None:
     
 
 def test_failure_tampered_stego() -> None:
-    raise NotImplementedError
+    with tempfile.TemporaryDirectory() as td:
+        # Temp paths for cover and stego images
+        cover_path = os.path.join(td, "cover.png")
+        stego_path = os.path.join(td, "stego.png")
 
+        # Large enough RGB cover for payload + 4-byte length prefix
+        Image.new("RGB", (512, 512), (128, 128, 128)).save(cover_path)
+
+        k = os.urandom(32)
+
+        payload = b"STEGO_TEST"
+
+        # Embed payload at keyed LSB positions
+        stego_img = embed(cover_path, payload, k)
+
+        assert stego_img is not None, (
+            "embed must succeed for a payload within cover capacity"
+        )
+
+        stego_img.save(stego_path)
+
+        # Extract message out of stego image
+        stego_out = extract(stego_path, k)
+
+        assert stego_out == payload, (
+            "extract with correct K_extract must recover the embedded payload"
+        )
+
+        # Corrupt the saved stego image by pixel punching
+        img = Image.open(stego_path)
+        pixels = img.load()
+
+        for y in range(512):
+            for x in range(512):
+                pixels[x, y] = (0, 0, 0)
+
+        img.save(stego_path)
+
+        #Extract and compare the corrupted image to the initial payload
+        bad_out = extract(stego_path, k)
+
+        assert bad_out != payload, (
+            "extract with corrupted stego image must not recover the embedded payload"
+        )
 
 def test_failure_oversized_bytecode() -> None:
     raise NotImplementedError
