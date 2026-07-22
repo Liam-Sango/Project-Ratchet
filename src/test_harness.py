@@ -23,6 +23,15 @@ from src.arweave_interface import (
     MockArweave,
 )
 
+from src.assembler import (
+    assemble_payload
+)
+
+from src.vm import (
+    execute_bytecode,
+    VirtualMachine,
+)
+
 from src.keys import (
     server_generate_k_root,
     server_derive_k_extract,
@@ -461,8 +470,46 @@ def test_arweave_mock_wallet_history() -> None:
     
 
 def test_vm_execute_and_wipe() -> None:
-    raise NotImplementedError
+    # Track A: execute_bytecode snapshot after PUSH32 7 HALT
+    ta_payload = assemble_payload(["PUSH32 7", "HALT"])
+    ta_result = execute_bytecode(ta_payload)
 
+    assert ta_result["is_halted"] is True, (
+        "execute_bytecode must halt on HALT"
+    )
+    assert ta_result["data_stack"] == [7], (
+        "data stack snapshot must contain the pushed value 7"
+    )
+
+    # Track B: direct VirtualMachine run + wipe clears ephemeral state
+    tb_payload = assemble_payload(["PUSH32 7", "HALT"])
+    vm = VirtualMachine(bytearray(tb_payload))
+    vm.run()
+
+    assert vm.is_halted is True, (
+        "VM.run must set is_halted after HALT"
+    )
+    assert list(vm.data_stack) == [7], (
+        "data stack must hold 7 before wipe"
+    )
+
+    vm.wipe()
+
+    assert len(vm.data_stack) == 0, (
+        "wipe must clear the data stack"
+    )
+    assert len(vm.return_stack) == 0, (
+        "wipe must clear the return stack"
+    )
+    assert len(vm.memory) == 0, (
+        "wipe must clear VM memory"
+    )
+    assert len(vm.bytecode) == 0, (
+        "wipe must clear the bytecode buffer"
+    )
+    assert len(vm.buffers) == 0, (
+        "wipe must clear handle buffers"
+    )
 
 def test_failure_wrong_k_extract() -> None:
     raise NotImplementedError
