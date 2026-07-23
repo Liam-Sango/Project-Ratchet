@@ -588,7 +588,14 @@ def test_failure_tampered_stego() -> None:
         )
 
 def test_failure_oversized_bytecode() -> None:
-    raise NotImplementedError
+    #52x PUSH32 (5 bytes each) = 260 bytes > 256-byte limit
+    oversized_bytecode = ["PUSH32 1"] * 52 + ["HALT"]
+    
+    try: 
+        assemble_payload(oversized_bytecode)
+        assert False, "assemble_payload must reject oversized bytecode"
+    except ValueError:
+        pass
 
 
 def test_failure_ratchet_desync() -> None:
