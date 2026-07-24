@@ -665,9 +665,40 @@ def test_failure_wrong_wallet() -> None:
         )
 
 def test_failure_missing_cover() -> None:
+    with tempfile.TemporaryDirectory() as td:
+        server_keyfile = os.path.join(td, "server.json")
+        wallet_path = os.path.join(td, "wallet.json")
 
-    raise NotImplementedError
+        # Generate server root and derive initial ratchets
+        k_root = server_generate_k_root()
+        d = server_derive_allkeys(k_root)
 
+        # Provision server keyfile
+        server_save_server_keys(
+            server_keyfile,
+            k_root,
+            d["K_ratchet"],
+            d["K_exfil_ratchet"],
+            agent_wallet="agent_wallet",
+            last_seen_txid="",
+        )
+
+        shared_state.clear()
+        shared_state["mock"] = MockArweave()
+
+        # Send path with no cover image must fail closed
+        server_args = argparse.Namespace(
+            keyfile=server_keyfile,
+            wallet=wallet_path,
+            mock=True,
+            cover=None,
+            task="PUSH32 1 HALT",
+            retrieve=None,
+        )
+
+        assert run_server(server_args) == -1, (
+            "send must return -1 when cover image is missing"
+        )
 
 def test_security_backward_secrecy() -> None:
     raise NotImplementedError
