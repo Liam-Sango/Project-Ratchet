@@ -629,10 +629,43 @@ def test_failure_ratchet_desync() -> None:
     )
 
 def test_failure_wrong_wallet() -> None:
-    raise NotImplementedError
+    with tempfile.TemporaryDirectory() as td:
+        server_keyfile = os.path.join(td, "server.json")
+        wallet_path = os.path.join(td, "wallet.json")
 
+        # Generate server root and derive initial ratchets
+        k_root = server_generate_k_root()
+        d = server_derive_allkeys(k_root)
+
+        # Provision server keyfile with agent_wallet set
+        server_save_server_keys(
+            server_keyfile,
+            k_root,
+            d["K_ratchet"],
+            d["K_exfil_ratchet"],
+            agent_wallet="agent_wallet",
+            last_seen_txid="",
+        )
+
+        # Fresh mock with no uploads; agent wallet history is empty
+        shared_state.clear()
+        shared_state["mock"] = MockArweave()
+
+        # Retrieve must return 0 (no new exfil) without crashing
+        server_args = argparse.Namespace(
+            keyfile=server_keyfile,
+            wallet=wallet_path,
+            mock=True,
+            task=None,
+            retrieve=True,
+        )
+
+        assert run_server(server_args) == 0, (
+            "retrieve must return 0 when the watched wallet has no exfil"
+        )
 
 def test_failure_missing_cover() -> None:
+
     raise NotImplementedError
 
 
