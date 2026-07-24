@@ -590,17 +590,43 @@ def test_failure_tampered_stego() -> None:
 def test_failure_oversized_bytecode() -> None:
     #52x PUSH32 (5 bytes each) = 260 bytes > 256-byte limit
     oversized_bytecode = ["PUSH32 1"] * 52 + ["HALT"]
-    
+
     try: 
         assemble_payload(oversized_bytecode)
         assert False, "assemble_payload must reject oversized bytecode"
     except ValueError:
         pass
 
-
 def test_failure_ratchet_desync() -> None:
-    raise NotImplementedError
+    # Generate distinct ratchets for sender and receiver
+    K_server = os.urandom(32)
+    K_agent = os.urandom(32)
+    bytecode = b"desync-test"
 
+    assert K_server != K_agent, (
+        "server and agent ratchets must differ for desync test"
+    )
+
+    # Control: encrypt and decrypt with the same ratchet must recover plaintext
+    payload, _ = encrypt_task(bytecode, K_server)
+
+    assert payload is not None, (
+        "encrypt_task must produce a payload"
+    )
+
+    result = decrypt_task(payload, K_server)
+    result_1, result_1_ratchet = result
+
+    assert result_1 == bytecode, (
+        "decrypt with matching ratchet must recover the original bytecode"
+    )
+
+    # Desync: decrypt with a mismatched ratchet must fail closed
+    result_2 = decrypt_task(payload, K_agent)
+
+    assert result_2 is None, (
+        "decrypt with desynced ratchet must return None"
+    )
 
 def test_failure_wrong_wallet() -> None:
     raise NotImplementedError
