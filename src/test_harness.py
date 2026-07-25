@@ -1,6 +1,8 @@
 from __future__ import annotations
 import tempfile, os, argparse
 from PIL import Image
+import json
+
 
 from src.main import (
      run_server, 
@@ -734,8 +736,47 @@ def test_security_backward_secrecy() -> None:
     )
 
 def test_security_k_root_absent_from_agent_paths() -> None:
-    raise NotImplementedError
+    with tempfile.TemporaryDirectory() as td:
+        agent_keyfile = os.path.join(td, "agent.json")
 
+        agent_wallet = "AGENT_WALLET"
+        last_seen_txid = "LAST_SEEN_TXID"
+        cover_path = "COVER_PATH"
+
+        # Generate server root and derive initial ratchets / K_extract
+        k_root = server_generate_k_root()
+        d = server_derive_allkeys(k_root)
+
+        assert len(k_root) == 32, (
+            "K_root must be 32 bytes"
+        )
+
+        # Save agent keys — K_root is never passed to the agent save path
+        agent_save_agent_keys(
+            keyfile_path=agent_keyfile,
+            K_ratchet=d["K_ratchet"],
+            K_exfil_ratchet=d["K_exfil_ratchet"],
+            K_extract=d["K_extract"],
+            server_wallet=agent_wallet,
+            last_seen_txid=last_seen_txid,
+            cover_path=cover_path,
+        )
+
+        # Loaded agent key dict must not contain K_root
+        agent_keys = agent_load_agent_keys(agent_keyfile)
+
+        assert "K_root" not in agent_keys, (
+            "agent key dict must not include K_root"
+        )
+
+        # Raw agent keyfile JSON must not contain a K_root field
+        with open(agent_keyfile, "r") as f:
+            data = json.load(f)
+
+        assert "K_root" not in data, (
+            "agent keyfile JSON must not contain K_root"
+        )
+                
 
 def test_security_vm_wipe() -> None:
     raise NotImplementedError
