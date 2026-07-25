@@ -701,8 +701,37 @@ def test_failure_missing_cover() -> None:
         )
 
 def test_security_backward_secrecy() -> None:
-    raise NotImplementedError
+    # Starting ratchet
+    k = os.urandom(32)
 
+    # Message 1 encrypted with the starting ratchet
+    p1 = b"FIRST"
+    payload_1, k_1_next = encrypt_task(p1, k)
+
+    # Control: decrypt message 1 with the original ratchet
+    result_1 = decrypt_task(payload_1, k)
+    result_1_p, result_1_r = result_1
+
+    assert result_1_p == p1, (
+        "decrypt with the original ratchet must recover the plaintext"
+    )
+
+    # Message 2 encrypted with the advanced ratchet
+    p2 = b"SECOND"
+    payload_2, k_2_next = encrypt_task(p2, k_1_next)
+
+    # Forward secrecy: old ratchet cannot decrypt a future message
+    result_2 = decrypt_task(payload_2, k)
+
+    assert result_2 is None, (
+        "old ratchet must not decrypt a message encrypted with an advanced ratchet"
+    )
+
+    # Backward secrecy: advanced ratchet cannot decrypt a past message
+    result_past = decrypt_task(payload_1, k_1_next)
+    assert result_past is None, (
+        "advanced ratchet must not decrypt a message encrypted with a prior ratchet"
+    )
 
 def test_security_k_root_absent_from_agent_paths() -> None:
     raise NotImplementedError
