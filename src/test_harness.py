@@ -720,7 +720,7 @@ def test_security_backward_secrecy() -> None:
     p2 = b"SECOND"
     payload_2, k_2_next = encrypt_task(p2, k_1_next)
 
-    # Forward secrecy: old ratchet cannot decrypt a future message
+    # Different ratchet states produce different keys; old state cannot decrypt a message encrypted with an advanced state
     result_2 = decrypt_task(payload_2, k)
 
     assert result_2 is None, (
