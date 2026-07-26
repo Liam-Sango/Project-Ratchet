@@ -837,8 +837,41 @@ def test_scenario_rng_subversion_flags() -> None:
 
 
 def run_all() -> None:
-    raise NotImplementedError
+    tests = [
+        ("full_loop_integration", test_full_loop_integration),
+        ("keys_isolation", test_keys_isolation),
+        ("crypto_roundtrip_and_tamper", test_crypto_roundtrip_and_tamper),
+        ("stego_roundtrip", test_stego_roundtrip),
+        ("arweave_mock_wallet_history", test_arweave_mock_wallet_history),
+        ("vm_execute_and_wipe", test_vm_execute_and_wipe),
+        ("failure_wrong_k_extract", test_failure_wrong_k_extract),
+        ("failure_tampered_stego", test_failure_tampered_stego),
+        ("failure_oversized_bytecode", test_failure_oversized_bytecode),
+        ("failure_ratchet_desync", test_failure_ratchet_desync),
+        ("failure_wrong_wallet", test_failure_wrong_wallet),
+        ("failure_missing_cover", test_failure_missing_cover),
+        ("security_backward_secrecy", test_security_backward_secrecy),
+        ("security_k_root_absent_from_agent_paths", test_security_k_root_absent_from_agent_paths),
+        ("security_vm_wipe", test_security_vm_wipe),
+    ]
 
+    passed = 0
+    failed = 0
+
+    for name, fn in tests:
+        try:
+            fn()
+            print(f"  PASS  {name}")
+            passed += 1
+        except Exception as e:
+            print(f"  FAIL  {name}: {e}")
+            failed += 1
+
+    print(f"\n{passed} passed, {failed} failed, {len(tests)} total")
+
+    # Scenario tests are skipped until the defensive framework is implemented
+    if failed:
+        raise SystemExit(1)
 
 if __name__ == "__main__":
-    test_full_loop_integration()
+    run_all()
