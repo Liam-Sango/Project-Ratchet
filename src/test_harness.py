@@ -779,8 +779,50 @@ def test_security_k_root_absent_from_agent_paths() -> None:
                 
 
 def test_security_vm_wipe() -> None:
-    raise NotImplementedError
+    # Store a known value in memory and on the stack, then prove wipe clears both.
+    known_value = 0x41414141
+    lines = [
+        f"PUSH32 0",                # address
+        f"PUSH32 {known_value}",    # value
+        "STORE32",                  # write to memory[0..3] (pops both)
+        f"PUSH32 {known_value}",    # leave known value on the stack
+        "HALT",
+    ]
+    payload = assemble_payload(lines)
 
+    vm = VirtualMachine(bytearray(payload))
+    vm.run()
+
+    # Before wipe: known value is in memory[0..3] and still on the stack
+    assert vm.is_halted is True, (
+        "VM must halt after HALT"
+    )
+    assert list(vm.data_stack) == [known_value], (
+        "data stack must hold the known value before wipe"
+    )
+    mem_word = int.from_bytes(vm.memory[0:4], byteorder="big", signed=True)
+    assert mem_word == known_value, (
+        "memory[0:4] must hold the known value before wipe"
+    )
+
+    vm.wipe()
+
+    # After wipe: no trace of the known value survives
+    assert len(vm.data_stack) == 0, (
+        "wipe must clear the data stack"
+    )
+    assert len(vm.return_stack) == 0, (
+        "wipe must clear the return stack"
+    )
+    assert len(vm.memory) == 0, (
+        "wipe must clear VM memory"
+    )
+    assert len(vm.bytecode) == 0, (
+        "wipe must clear the bytecode buffer"
+    )
+    assert len(vm.buffers) == 0, (
+        "wipe must clear handle buffers"
+    )
 
 def test_scenario_key_steal_detects() -> None:
     raise NotImplementedError
