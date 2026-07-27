@@ -3,11 +3,23 @@ import hashlib
 import hmac
 import json
 
+from src.defense.events import emit, EventType
+
+
+def _h16(key: bytes) -> str:
+    return hashlib.sha256(key).hexdigest()[:16]
+
+
 #Shared functions
 
 #Advances the ratchet mechanism
 def advance_ratchet(k_ratchet):
-    return hmac.new(k_ratchet, b"RATCHET", hashlib.sha256).digest()
+    new = hmac.new(k_ratchet, b"RATCHET", hashlib.sha256).digest()
+    emit(EventType.RATCHET_ADVANCE, {
+        "in_hash": _h16(k_ratchet),
+        "out_hash": _h16(new),
+    })
+    return new
 
 #Derives our per task keys
 def derive_cmd_key(k_ratchet, salt):
@@ -72,6 +84,8 @@ def server_save_server_keys(keyfile_path, K_root, K_ratchet, K_exfil_ratchet, ag
     with open(keyfile_path, "w") as f:
         json.dump(server_keys, f)
 
+    emit(EventType.KEYFILE_SAVE, {"path": keyfile_path, "kind": "server"})
+
 #Loads server keys from keyfile
 
 def server_load_server_keys(keyfile_path):
@@ -83,6 +97,7 @@ def server_load_server_keys(keyfile_path):
         K_root = server_generate_k_root()
         derived = server_derive_allkeys(K_root)
         server_save_server_keys(keyfile_path, K_root, derived["K_ratchet"], derived["K_exfil_ratchet"])
+        emit(EventType.KEYFILE_LOAD, {"path": keyfile_path, "kind": "server", "generated": True})
         return {
             "K_root": K_root,
             "K_ratchet": derived["K_ratchet"],
@@ -109,6 +124,7 @@ def server_load_server_keys(keyfile_path):
     agent_wallet = data.get("agent_wallet", "")
     last_seen_txid = data.get("last_seen_txid", "")
 
+    emit(EventType.KEYFILE_LOAD, {"path": keyfile_path, "kind": "server", "generated": False})
     return {
         "K_root": K_root,
         "K_ratchet": K_ratchet,
@@ -153,6 +169,8 @@ def agent_save_agent_keys(keyfile_path, K_ratchet, K_exfil_ratchet, K_extract,
     with open(keyfile_path, "w") as f:
         json.dump(agent_keys, f)
 
+    emit(EventType.KEYFILE_SAVE, {"path": keyfile_path, "kind": "agent"})
+
 #Loads agent keys from keyfiles
 
 def agent_load_agent_keys(keyfile_path):
@@ -180,6 +198,7 @@ def agent_load_agent_keys(keyfile_path):
         "cover_path": cover_path,
     }
 
+    emit(EventType.KEYFILE_LOAD, {"path": keyfile_path, "kind": "agent"})
     return agent_keys
 
 

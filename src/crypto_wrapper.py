@@ -2,6 +2,7 @@ import os
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.exceptions import InvalidTag
 from src.keys import derive_cmd_key, advance_ratchet
+from src.defense.events import emit, EventType
 
 #Replaces a key with zero.
 def zero_key (key: bytearray):
@@ -28,6 +29,7 @@ def encrypt_task(bytecode: bytes, K_ratchet: bytes) -> tuple[bytes, bytes]:
 def decrypt_task(payload: bytes, K_ratchet: bytes) -> tuple[bytes, bytes] | None:
     #Reject payloads too short to contain salt + IV + tag
     if len(payload) < 28 + 16:
+        emit(EventType.DECRYPT_FAIL, {"reason": "short_payload", "len": len(payload)})
         return None
 
     #Gets random values
@@ -44,9 +46,11 @@ def decrypt_task(payload: bytes, K_ratchet: bytes) -> tuple[bytes, bytes] | None
         plaintext_bytecode = aesgcm.decrypt(iv, ciphertext_and_tag, None)
     except InvalidTag:
         zero_key(k_cmd)
+        emit(EventType.DECRYPT_FAIL, {"reason": "invalid_tag"})
         return None
     else:
         zero_key(k_cmd)
         new_k_ratchet = advance_ratchet(K_ratchet)
+        emit(EventType.DECRYPT_SUCCESS, {"plaintext_bytes": len(plaintext_bytecode)})
         return plaintext_bytecode, new_k_ratchet
 

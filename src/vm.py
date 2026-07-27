@@ -4,6 +4,8 @@ import time
 import gc
 import requests
 
+from src.defense.events import emit, EventType
+
 logger = logging.getLogger(__name__)
 
 #Logs syscall function calls and their return values
@@ -29,12 +31,15 @@ def file_read(vm):
             data = f.read()
 
         handle = vm.store_buffer(data)
+        emit(EventType.FILE_READ, {"path": path, "bytes": len(data), "ok": True})
         return handle
 
     except FileNotFoundError:
+        emit(EventType.FILE_READ, {"path": "<unknown>", "ok": False})
         return -1
 
     except OSError:
+        emit(EventType.FILE_READ, {"path": "<unknown>", "ok": False})
         return -1
 
 
@@ -78,9 +83,11 @@ def http_get(vm):
             response = request.content
 
         handle = vm.store_buffer(response)
+        emit(EventType.HTTP_GET, {"url": url, "bytes": len(response), "ok": True})
         return handle
     
     except requests.exceptions.RequestException:
+        emit(EventType.HTTP_GET, {"ok": False})
         return -1
 
 @log_function_call
@@ -90,9 +97,11 @@ def arweave_upload(vm):
     data = vm.get_buffer(handle)
 
     if vm.exfil_handler is None:
+        emit(EventType.ARWEAVE_UPLOAD, {"bytes": len(data), "ok": False})
         return -1
     
     exfil_return = vm.exfil_handler(vm, data)
+    emit(EventType.ARWEAVE_UPLOAD, {"bytes": len(data), "ok": exfil_return != -1})
     return exfil_return
 
 
@@ -483,6 +492,7 @@ class VirtualMachine:
 #Executes bytecode and returns a snapshot of the VM state before wiping
 def execute_bytecode(bytecode: bytearray | bytes, memory_size : int = 4096, exfil_handler=None):
 
+    emit(EventType.VM_START, {"bytecode_len": len(bytecode)})
     vm = VirtualMachine(bytecode, memory_size, exfil_handler=exfil_handler)
     try:
         vm.run()
@@ -493,6 +503,7 @@ def execute_bytecode(bytecode: bytearray | bytes, memory_size : int = 4096, exfi
             "return_stack": list(vm.return_stack),
             "memory": bytes(vm.memory),
         }
+        emit(EventType.VM_END, {"is_halted": result["is_halted"], "ip": result["instruction_pointer"]})
     finally:
         vm.wipe()
 

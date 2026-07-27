@@ -3,6 +3,8 @@ import hmac
 import PIL.Image
 import numpy
 
+from src.defense.events import emit, EventType
+
 #Converts a bytes object into a flat list of bits, MSB first per byte
 def bytes_to_bits(data: bytes) -> list[int]:
     bit_list = []
@@ -82,6 +84,7 @@ def embed(cover_image_path: str, payload: bytes, k_extract: bytes) -> "PIL.Image
     #Capacity check before embedding to fail gracefully on overflow
     total_positions = pixels.shape[0] * pixels.shape[1] * pixels.shape[2]
     if len(bits) > total_positions:
+        emit(EventType.STEGO_EMBED, {"cover": cover_image_path, "payload_bytes": len(payload), "ok": False})
         return None
 
     positions = generate_positions(pixels.shape, k_extract, len(bits))
@@ -90,6 +93,7 @@ def embed(cover_image_path: str, payload: bytes, k_extract: bytes) -> "PIL.Image
     for bit, (x, y, channel) in zip(bits, positions):
         pixels[y, x, channel] = (pixels[y, x, channel] & 0xFE) | bit
 
+    emit(EventType.STEGO_EMBED, {"cover": cover_image_path, "payload_bytes": len(payload), "ok": True})
     return PIL.Image.fromarray(pixels)
 
 #Extracts a payload from the LSBs of a stego image at keyed positions
@@ -97,6 +101,7 @@ def extract(stego_image_path: str, k_extract: bytes) -> bytes:
     try:
         image = PIL.Image.open(stego_image_path).convert("RGB")
     except (PIL.UnidentifiedImageError, OSError):
+        emit(EventType.STEGO_EXTRACT, {"stego": stego_image_path, "payload_bytes": 0, "ok": False})
         return b""
     pixels = numpy.array(image, dtype=numpy.uint8)
 
@@ -114,6 +119,7 @@ def extract(stego_image_path: str, k_extract: bytes) -> bytes:
     #If the decoded length exceeds image capacity, the key is wrong or image is corrupt
     total_bits = 32 + payload_length * 8
     if total_bits > total_positions:
+        emit(EventType.STEGO_EXTRACT, {"stego": stego_image_path, "payload_bytes": 0, "ok": False})
         return b""
 
     #Generates positions for the full payload (prefix + payload) and skips the first 32
@@ -124,6 +130,8 @@ def extract(stego_image_path: str, k_extract: bytes) -> bytes:
     for (x, y, channel) in all_positions[32:]:
         payload_bits.append(int(pixels[y, x, channel] & 1))
 
-    return bits_to_bytes(payload_bits)
+    result = bits_to_bytes(payload_bits)
+    emit(EventType.STEGO_EXTRACT, {"stego": stego_image_path, "payload_bytes": len(result), "ok": len(result) > 0})
+    return result
 
 
