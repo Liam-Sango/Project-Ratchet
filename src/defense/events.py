@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
+import time
 
 
 class EventType(str, Enum):
@@ -45,13 +46,17 @@ class EventCollector:
         self.events: list[Event] = []
 
     def emit(self, event_type: EventType, detail: dict[str, Any] | None = None) -> None:
-        raise NotImplementedError
+        self.events.append(Event(
+            type=event_type,
+            timestamp=time.time(),
+            detail=detail if detail is not None else {},
+        ))
 
     def clear(self) -> None:
-        raise NotImplementedError
+        self.events.clear()
 
     def as_list(self) -> list[Event]:
-        raise NotImplementedError
+        return self.events
 
 
 _active: EventCollector | None = None
@@ -68,4 +73,8 @@ def set_collector(collector: EventCollector | None) -> None:
 
 def emit(event_type: EventType, detail: dict[str, Any] | None = None) -> None:
     """Emit to active collector if attached; no-op otherwise."""
-    raise NotImplementedError
+    collector = get_collector()
+
+    if collector is not None:
+        collector.emit(event_type, detail)
+
