@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
+import fnmatch
 from pathlib import Path
 
-from src.defense.events import Alert, Event
-
-import fnmatch
-from src.defense.events import EventType   # for the type comparison
+from src.defense.events import Alert, Event, EventType
 
 
 

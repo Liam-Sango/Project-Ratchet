@@ -15,14 +15,6 @@ from src.defense.events import Alert, Event, EventCollector, set_collector
 from src.defense.report import ScenarioReport
 from src.keys import (
     server_generate_k_root,
-    server_derive_allkeys,
-    server_save_server_keys,
-    agent_save_agent_keys,
-)
-from src.main import run_server, run_agent, shared_state
-
-from src.keys import (
-    server_generate_k_root,
     server_derive_k_extract,
     server_derive_allkeys,
     server_save_server_keys,
@@ -31,10 +23,7 @@ from src.keys import (
     agent_load_agent_keys,
     advance_ratchet,
 )
-
-
-import tempfile
-import os
+from src.main import run_server, run_agent, shared_state
 
 
 class ScenarioId(str, Enum):
@@ -57,7 +46,7 @@ def _path_to_store_asm(path: str) -> str:
         data += b"\0"
     parts = []
     for i in range(0, len(data), 4):
-        word = int.from_bytes(data[i:i+4], "big", signed=True)
+        word = int.from_bytes(data[i:i+4], "big", signed=False)
         parts.append(f"PUSH32 {i} PUSH32 {word} STORE32")
     return " ".join(parts)
 
