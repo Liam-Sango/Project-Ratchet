@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
 from src.defense.events import Alert
-
-import json
 
 
 @dataclass
@@ -22,60 +21,59 @@ class ScenarioReport:
 
 
 def render_text(report: ScenarioReport) -> str:
-    #Initialises our report variable
-    text_report = f""
+    text_report = ""
 
-    #Adds our scenario string to our report
     text_report += "Scenario: "
     text_report += report.scenario
     text_report += "\n"
 
-    #Adds our result string to our report
     text_report += "Result:   "
-
     if report.passed:
         text_report += "PASS"
-    else: 
+    else:
         text_report += "FAIL"
     text_report += "\n"
 
-    #Adds our alert strings to our report
+    if report.alerts:
+        text_report += f"Alerts ({len(report.alerts)}):\n"
+        for alert in report.alerts:
+            line = f"  [{alert.class_}] "
+            if alert.event_index is not None:
+                line += f"@event {alert.event_index} — {alert.message}"
+            else:
+                line += alert.message
+            text_report += line + "\n"
+    else:
+        text_report += "Alerts: none\n"
 
-    #Alert header
-    if report.alerts is not None:
-        alert_len = len(report.alerts)
-        text_report += f"Alerts ({alert_len}):"
-        text_report += "\n"
+    if report.metrics:
+        text_report += "Metrics:\n"
+        for key, value in report.metrics.items():
+            text_report += f"  {key}: {value}\n"
+    else:
+        text_report += "Metrics: none\n"
 
-    elif report.alerts is None:
-        text_report += f"Alerts: none"
-        text_report += "\n"
+    if report.false_positive_notes:
+        text_report += "False positives:\n"
+        for fp in report.false_positive_notes:
+            text_report += f"  - {fp}\n"
+    else:
+        text_report += "False positives: none\n"
 
-    #Alert bodies
-    for alert in report.alerts:
-        alert_str = f""
+    if report.residual_risks:
+        text_report += "Residual risks:\n"
+        for rr in report.residual_risks:
+            text_report += f"  - {rr}\n"
+    else:
+        text_report += "Residual risks: none\n"
 
-        alert_str += f"  [{alert.class_}] " 
+    if report.detail:
+        text_report += "Detail:\n"
+        for key, value in report.detail.items():
+            text_report += f"  {key}: {value}\n"
 
-        if alert.event_index is not None:
-            alert_str += f"@event {alert.event_index} - "
-            alert_str += f"{alert.message}"
-            text_report += "\n"
-        else: 
-            alert_str += f"{alert.message}"
-            text_report += "\n"
+    return text_report
 
-        text_report += alert_str
-        
-
-
-
-
-
-
-
-
-    
 
 def render_json(report: ScenarioReport) -> str:
     json_report =json.dumps(report_to_dict(report), indent=2)
