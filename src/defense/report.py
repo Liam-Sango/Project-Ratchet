@@ -7,6 +7,8 @@ from typing import Any
 
 from src.defense.events import Alert
 
+import json
+
 
 @dataclass
 class ScenarioReport:
@@ -20,11 +22,64 @@ class ScenarioReport:
 
 
 def render_text(report: ScenarioReport) -> str:
-    raise NotImplementedError
+    #Initialises our report variable
+    text_report = f""
 
+    #Adds our scenario string to our report
+    text_report += "Scenario: "
+    text_report += report.scenario
+    text_report += "\n"
+
+    #Adds our result string to our report
+    text_report += "Result:   "
+
+    if report.passed:
+        text_report += "PASS"
+    else: 
+        text_report += "FAIL"
+    text_report += "\n"
+
+    #Adds our alert strings to our report
+
+    #Alert header
+    if report.alerts is not None:
+        alert_len = len(report.alerts)
+        text_report += f"Alerts ({alert_len}):"
+        text_report += "\n"
+
+    elif report.alerts is None:
+        text_report += f"Alerts: none"
+        text_report += "\n"
+
+    #Alert bodies
+    for alert in report.alerts:
+        alert_str = f""
+
+        alert_str += f"  [{alert.class_}] " 
+
+        if alert.event_index is not None:
+            alert_str += f"@event {alert.event_index} - "
+            alert_str += f"{alert.message}"
+            text_report += "\n"
+        else: 
+            alert_str += f"{alert.message}"
+            text_report += "\n"
+
+        text_report += alert_str
+        
+
+
+
+
+
+
+
+
+    
 
 def render_json(report: ScenarioReport) -> str:
-    raise NotImplementedError
+    json_report =json.dumps(report_to_dict(report), indent=2)
+    return json_report
 
 
 def render_bundle_text(reports: list[ScenarioReport]) -> str:
