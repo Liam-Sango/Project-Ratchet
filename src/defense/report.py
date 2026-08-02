@@ -81,7 +81,33 @@ def render_json(report: ScenarioReport) -> str:
 
 
 def render_bundle_text(reports: list[ScenarioReport]) -> str:
-    raise NotImplementedError
+    text_bundle = ""
+
+    #Finds the total number of reports in the report list
+    report_total = len(reports)
+
+    #Finds the result of each report in the report list
+    passed_count = sum(1 for r in reports if r.passed)
+    failed_count = sum(1 for r in reports if not r.passed)
+
+    #Finds the overall result
+    overall_passed = all(r.passed for r in reports)
+
+    if overall_passed:
+        overall_result = "PASS"
+    else:
+        overall_result = "FAIL"
+
+    #Takes the values gathered and puts them into a header
+    text_bundle += f"Scenarios: {report_total} (PASS: {passed_count} FAIL: {failed_count})\n"
+    text_bundle += f"Overall:   {overall_result}\n"
+
+    #Creates the report with the report list
+    parts = [render_text(r) for r in reports]
+    if parts:
+        text_bundle += "──────────\n".join(parts)
+
+    return text_bundle
 
 
 def render_bundle_json(reports: list[ScenarioReport]) -> str:
