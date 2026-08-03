@@ -111,7 +111,7 @@ def render_bundle_text(reports: list[ScenarioReport]) -> str:
 
 
 def render_bundle_json(reports: list[ScenarioReport]) -> str:
-    raise NotImplementedError
+    return json.dumps([report_to_dict(r) for r in reports], indent=2)
 
 
 def report_to_dict(report: ScenarioReport) -> dict[str, Any]:
