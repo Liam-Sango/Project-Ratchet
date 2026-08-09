@@ -56,7 +56,24 @@ def monitor_key_steal(
 
 def monitor_key_corruption(events: list[Event]) -> list[Alert]:
     """S3: keyfile integrity and decrypt fail-closed signals."""
-    raise NotImplementedError
+    alerts = []
+
+    #RULE 1
+    for i, event in enumerate(events):
+        if event.type == EventType.DECRYPT_FAIL:
+            reason = event.detail.get("reason")  
+            alerts.append(Alert(
+                 class_="DECRYPT_AUTH_FAIL",
+                 message=f"Decrypt failed ({reason})",
+                 event_index=i,
+                 detail={"reason": reason},
+            ))
+
+    #RULE 2
+    for i, event in enumerate(events):
+        raise NotImplementedError
+
+    return alerts
 
 
 def monitor_rng_subversion(events: list[Event]) -> list[Alert]:
