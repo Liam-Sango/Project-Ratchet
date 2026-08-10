@@ -215,6 +215,14 @@ mapline 4 "Upload to Arweave dead-drop" "" ""
 printf '\n'
 pause
 
+# --------------------------------------------------------- explainer
+printf '%s   %s%s%s\n' "$C_CYAN" "$C_BOLD" "▍WHAT YOU ARE ABOUT TO SEE$C_RESET"
+printf '%s   %s%s%s\n' "$C_CYAN" "▍" "$C_DIM" "Seven stages, one tasking message, end to end —$C_RESET"
+printf '%s   %s%s%s\n' "$C_CYAN" "▍" "$C_DIM" "composed, hidden in an image, exfiltrated, recovered.$C_RESET"
+printf '%s   %s%s%s\n' "$C_CYAN" "▍" "$C_DIM" "Every line below is live telemetry from a real run — nothing canned.$C_RESET"
+printf '%s   %s%s%s\n' "$C_CYAN" "▍" "$C_DIM" "Lab only: mock Arweave, no real network touched.$C_RESET"
+pause
+
 for n in 1 2 3 4 5 6 7; do
     case "$n" in
         1) t="Compose tasking bytecode"
